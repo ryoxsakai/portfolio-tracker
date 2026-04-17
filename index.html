@@ -10,22 +10,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400&family=IBM+Plex+Sans+JP:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f7f5f0;
-    --bg-elevated: #ffffff;
-    --ink: #1a1a1a;
-    --ink-soft: #5a5a5a;
-    --ink-muted: #9a9a9a;
-    --line: #e5e1d8;
-    --line-soft: #efece5;
-    --accent: #1a1a1a;
-    --profit: #fde8e8;
-    --profit-border: #f5c7c7;
-    --profit-ink: #8a2b2b;
-    --loss: #e3edf7;
-    --loss-border: #c1d4ea;
-    --loss-ink: #2a4d7a;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+    --bg:            #16181d;
+    --bg-elevated:   #1e2028;
+    --bg-card:       #22252e;
+    --bg-input:      #2a2d38;
+    --ink:           #e8e6e0;
+    --ink-soft:      #9a98a0;
+    --ink-muted:     #5a5860;
+    --line:          #2e3040;
+    --line-soft:     #262830;
+    --profit:        rgba(160, 60, 60, 0.18);
+    --profit-border: rgba(200, 80, 80, 0.35);
+    --profit-ink:    #f08080;
+    --loss:          rgba(50, 90, 160, 0.18);
+    --loss-border:   rgba(70, 120, 200, 0.35);
+    --loss-ink:      #7aaef0;
   }
 
 - { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,8 +41,8 @@ min-height: 100vh;
 
 body {
 background-image:
-radial-gradient(circle at 15% 20%, rgba(200, 180, 140, 0.08) 0%, transparent 40%),
-radial-gradient(circle at 85% 80%, rgba(120, 140, 180, 0.06) 0%, transparent 40%);
+radial-gradient(ellipse at 10% 0%, rgba(80, 60, 130, 0.12) 0%, transparent 50%),
+radial-gradient(ellipse at 90% 100%, rgba(30, 80, 140, 0.10) 0%, transparent 50%);
 }
 
 .container {
@@ -65,7 +64,7 @@ margin-bottom: 40px;
 .brand-mark {
 font-family: ‘Fraunces’, serif;
 font-weight: 300;
-font-size: 13px;
+font-size: 12px;
 letter-spacing: 0.3em;
 text-transform: uppercase;
 color: var(–ink-muted);
@@ -75,9 +74,10 @@ margin-bottom: 8px;
 h1 {
 font-family: ‘Fraunces’, serif;
 font-weight: 400;
-font-size: clamp(2rem, 4vw, 3rem);
+font-size: clamp(2rem, 4vw, 2.8rem);
 letter-spacing: -0.02em;
 line-height: 1.05;
+color: var(–ink);
 }
 
 h1 em {
@@ -98,34 +98,32 @@ text-align: right;
 .summary {
 display: grid;
 grid-template-columns: repeat(3, 1fr);
-background: var(–bg-elevated);
+background: var(–bg-card);
 border: 1px solid var(–line);
-margin-bottom: 48px;
+margin-bottom: 40px;
 }
 
 .summary-item {
-background: var(–bg-elevated);
-padding: 24px 28px;
+padding: 22px 24px;
 border-right: 1px solid var(–line);
 }
 
-.summary-item:last-child {
-border-right: none;
-}
+.summary-item:last-child { border-right: none; }
 
 .summary-label {
-font-size: 11px;
-letter-spacing: 0.15em;
+font-size: 10px;
+letter-spacing: 0.14em;
 text-transform: uppercase;
 color: var(–ink-muted);
-margin-bottom: 8px;
+margin-bottom: 6px;
 }
 
 .summary-value {
 font-family: ‘Fraunces’, serif;
-font-size: 28px;
+font-size: 26px;
 font-weight: 400;
 letter-spacing: -0.01em;
+color: var(–ink);
 }
 
 .summary-value.positive { color: var(–profit-ink); }
@@ -133,113 +131,50 @@ letter-spacing: -0.01em;
 
 /* フォーム */
 .form-section {
-background: var(–bg-elevated);
+background: var(–bg-card);
 border: 1px solid var(–line);
-padding: 32px;
-margin-bottom: 40px;
+padding: 28px 32px;
+margin-bottom: 32px;
 position: relative;
 }
 
 .form-section::before {
 content: ‘’;
 position: absolute;
-top: -1px;
-left: -1px;
-width: 24px;
-height: 24px;
-border-top: 2px solid var(–ink);
-border-left: 2px solid var(–ink);
+top: -1px; left: -1px;
+width: 20px; height: 20px;
+border-top: 2px solid var(–ink-soft);
+border-left: 2px solid var(–ink-soft);
 }
 
 .form-title {
 font-family: ‘Fraunces’, serif;
-font-size: 18px;
+font-size: 16px;
 font-weight: 500;
-margin-bottom: 24px;
+margin-bottom: 20px;
+color: var(–ink-soft);
 display: flex;
 align-items: center;
-gap: 12px;
+gap: 10px;
 }
 
 .form-title::before {
 content: ‘+’;
-font-size: 24px;
+font-size: 22px;
 font-weight: 300;
 color: var(–ink-muted);
 }
 
 .form-grid {
 display: grid;
-grid-template-columns: 2fr 1fr 1fr auto;
+grid-template-columns: 2fr 1fr 1fr 1fr auto;
 gap: 16px;
 align-items: end;
 }
 
-@media (max-width: 720px) {
-.container {
-padding: 28px 16px 60px;
-}
-
-```
-header {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.date-stamp {
-  text-align: left;
-}
-
-/* サマリー：スマホでは横3列を維持 */
-.summary {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.summary-item {
-  padding: 16px 12px;
-}
-
-.summary-value {
-  font-size: 22px;
-}
-
-.summary-label {
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-
-.form-section {
-  padding: 20px 16px;
-}
-
-.form-grid {
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-/* 銘柄名は2列にまたがる */
-.form-grid .field:first-child {
-  grid-column: 1 / -1;
-}
-
-/* 追加ボタンは2列にまたがる */
-.form-grid button.primary {
-  grid-column: 1 / -1;
-  width: 100%;
-  padding: 14px;
-}
-
-.legend {
-  gap: 16px;
-}
-```
-
-}
-
 .field label {
 display: block;
-font-size: 11px;
+font-size: 10px;
 letter-spacing: 0.1em;
 text-transform: uppercase;
 color: var(–ink-muted);
@@ -251,7 +186,7 @@ width: 100%;
 border: none;
 border-bottom: 1px solid var(–line);
 background: transparent;
-padding: 10px 0;
+padding: 8px 0;
 font-size: 15px;
 font-family: inherit;
 color: var(–ink);
@@ -260,7 +195,7 @@ transition: border-color 0.2s;
 
 .field input:focus {
 outline: none;
-border-bottom-color: var(–ink);
+border-bottom-color: var(–ink-soft);
 }
 
 .field input[type=“number”] {
@@ -273,54 +208,49 @@ appearance: none;
 background: var(–ink);
 color: var(–bg);
 border: none;
-padding: 12px 28px;
-font-size: 13px;
+padding: 10px 24px;
+font-size: 12px;
 letter-spacing: 0.1em;
 text-transform: uppercase;
 font-family: inherit;
 cursor: pointer;
-transition: all 0.25s;
-position: relative;
+transition: background 0.2s;
 white-space: nowrap;
 }
 
-button.primary:hover {
-background: var(–bg);
-color: var(–ink);
-box-shadow: inset 0 0 0 1px var(–ink);
-}
-
-button.primary:active { transform: translateY(1px); }
+button.primary:hover { background: var(–ink-soft); }
+button.primary:active { opacity: 0.8; }
 
 /* 凡例 */
 .legend {
 display: flex;
-gap: 24px;
-margin-bottom: 20px;
+gap: 20px;
+margin-bottom: 16px;
 font-size: 12px;
 color: var(–ink-soft);
 flex-wrap: wrap;
+align-items: center;
 }
 
 .legend-item {
 display: flex;
 align-items: center;
-gap: 8px;
+gap: 7px;
 }
 
 .swatch {
-width: 14px;
-height: 14px;
+width: 12px; height: 12px;
 border: 1px solid;
 display: inline-block;
+flex-shrink: 0;
 }
 
 .swatch.profit { background: var(–profit); border-color: var(–profit-border); }
-.swatch.loss { background: var(–loss); border-color: var(–loss-border); }
+.swatch.loss   { background: var(–loss);   border-color: var(–loss-border); }
 
 /* テーブル */
 .table-wrap {
-background: var(–bg-elevated);
+background: var(–bg-card);
 border: 1px solid var(–line);
 overflow-x: auto;
 }
@@ -328,106 +258,140 @@ overflow-x: auto;
 table {
 width: 100%;
 border-collapse: collapse;
-min-width: 640px;
+min-width: 720px;
 }
 
 thead th {
 text-align: left;
-padding: 18px 20px;
-font-size: 11px;
+padding: 14px 16px;
+font-size: 10px;
 letter-spacing: 0.12em;
 text-transform: uppercase;
 color: var(–ink-muted);
 font-weight: 500;
 border-bottom: 1px solid var(–line);
-background: var(–line-soft);
+background: var(–bg-elevated);
 }
 
 thead th.num { text-align: right; }
 
 tbody td {
-padding: 20px;
 border-bottom: 1px solid var(–line-soft);
-font-size: 15px;
 vertical-align: middle;
+padding: 0;
 }
 
 tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background-color 0.3s; }
 
-tbody tr {
-transition: background-color 0.3s;
+tbody tr.profit-row { background: var(–profit); }
+tbody tr.profit-row td:first-child { border-left: 3px solid var(–profit-border); }
+
+tbody tr.loss-row { background: var(–loss); }
+tbody tr.loss-row td:first-child { border-left: 3px solid var(–loss-border); }
+
+/* セル内パディング（spanで統一） */
+.cell-pad {
+display: flex;
+align-items: center;
+padding: 16px;
 }
 
-tbody tr.profit-row {
-background: var(–profit);
-}
-tbody tr.profit-row td:first-child {
-border-left: 3px solid var(–profit-border);
-padding-left: 17px;
-}
-
-tbody tr.loss-row {
-background: var(–loss);
-}
-tbody tr.loss-row td:first-child {
-border-left: 3px solid var(–loss-border);
-padding-left: 17px;
+.cell-right {
+justify-content: flex-end;
 }
 
 .ticker {
 font-family: ‘Fraunces’, serif;
-font-size: 17px;
+font-size: 16px;
 font-weight: 500;
 }
 
-.num {
-text-align: right;
-font-family: ‘JetBrains Mono’, monospace;
-font-variant-numeric: tabular-nums;
-font-size: 14px;
+/* インライン編集セル */
+.editable-cell { cursor: pointer; }
+
+.editable-cell .cell-pad {
+justify-content: flex-end;
+gap: 6px;
 }
 
-.pct {
+.edit-icon {
+opacity: 0;
+font-size: 10px;
+color: var(–ink-muted);
+transition: opacity 0.15s;
+flex-shrink: 0;
+user-select: none;
+}
+
+.editable-cell:hover .edit-icon,
+.editable-cell:focus .edit-icon { opacity: 1; }
+
+.val {
+font-family: ‘JetBrains Mono’, monospace;
+font-variant-numeric: tabular-nums;
+font-size: 13px;
+}
+
+.inline-input {
+display: none;
+width: 100%;
+background: var(–bg-input);
+border: 1px solid var(–ink-soft);
+color: var(–ink);
 font-family: ‘JetBrains Mono’, monospace;
 font-size: 13px;
-padding: 3px 10px;
+padding: 8px 12px;
+outline: none;
+text-align: right;
+margin: 4px 12px;
+box-sizing: border-box;
+width: calc(100% - 24px);
+}
+
+.editable-cell.editing .cell-pad  { display: none; }
+.editable-cell.editing .inline-input { display: block; }
+
+/* 損益率バッジ */
+.pct {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 12px;
+padding: 3px 8px;
 border: 1px solid var(–line);
 display: inline-block;
-min-width: 72px;
+min-width: 68px;
 text-align: center;
 }
 
-.pct.up {
-background: var(–profit);
-color: var(–profit-ink);
-border-color: var(–profit-border);
-}
-
-.pct.down {
-background: var(–loss);
-color: var(–loss-ink);
-border-color: var(–loss-border);
-}
+.pct.up   { background: var(–profit); color: var(–profit-ink); border-color: var(–profit-border); }
+.pct.down { background: var(–loss);   color: var(–loss-ink);   border-color: var(–loss-border); }
 
 .status {
-font-size: 11px;
-letter-spacing: 0.1em;
+font-size: 10px;
+letter-spacing: 0.08em;
 text-transform: uppercase;
 color: var(–ink-muted);
 }
 
-.status.alert-profit { color: var(–profit-ink); font-weight: 500; }
-.status.alert-loss { color: var(–loss-ink); font-weight: 500; }
+.status.alert-profit { color: var(–profit-ink); font-weight: 600; }
+.status.alert-loss   { color: var(–loss-ink);   font-weight: 600; }
+
+/* 削除ボタン */
+.action-cell {
+padding: 0 12px;
+text-align: right;
+white-space: nowrap;
+}
 
 button.icon-btn {
+-webkit-appearance: none;
+appearance: none;
 background: transparent;
 border: 1px solid var(–line);
-color: var(–ink-soft);
-width: 32px;
-height: 32px;
+color: var(–ink-muted);
+width: 28px; height: 28px;
 cursor: pointer;
 font-size: 14px;
-font-family: inherit;
 transition: all 0.2s;
 display: inline-flex;
 align-items: center;
@@ -435,13 +399,13 @@ justify-content: center;
 }
 
 button.icon-btn:hover {
-border-color: var(–ink);
+border-color: var(–ink-soft);
 color: var(–ink);
-background: var(–bg);
 }
 
+/* empty state */
 .empty {
-padding: 80px 20px;
+padding: 70px 20px;
 text-align: center;
 color: var(–ink-muted);
 }
@@ -449,24 +413,21 @@ color: var(–ink-muted);
 .empty-mark {
 font-family: ‘Fraunces’, serif;
 font-style: italic;
-font-size: 22px;
-margin-bottom: 8px;
+font-size: 20px;
+margin-bottom: 6px;
 color: var(–ink-soft);
 }
 
-.empty-sub {
-font-size: 13px;
-letter-spacing: 0.05em;
-}
+.empty-sub { font-size: 13px; }
 
 /* フッター */
 footer {
-margin-top: 48px;
-padding-top: 24px;
+margin-top: 40px;
+padding-top: 20px;
 border-top: 1px solid var(–line);
 display: flex;
 justify-content: space-between;
-font-size: 11px;
+font-size: 10px;
 letter-spacing: 0.1em;
 text-transform: uppercase;
 color: var(–ink-muted);
@@ -474,23 +435,48 @@ color: var(–ink-muted);
 
 /* アニメーション */
 @keyframes fadeIn {
-from { opacity: 0; transform: translateY(4px); }
-to { opacity: 1; transform: translateY(0); }
+from { opacity: 0; transform: translateY(3px); }
+to   { opacity: 1; transform: translateY(0); }
 }
 
-tbody tr {
-animation: fadeIn 0.3s ease-out;
-}
+tbody tr { animation: fadeIn 0.25s ease-out; }
 
-/* スクロールバー */
-.table-wrap::-webkit-scrollbar { height: 8px; }
-.table-wrap::-webkit-scrollbar-track { background: var(–line-soft); }
+.table-wrap::-webkit-scrollbar { height: 6px; }
+.table-wrap::-webkit-scrollbar-track { background: var(–bg-elevated); }
 .table-wrap::-webkit-scrollbar-thumb { background: var(–ink-muted); }
+
+/* ===== モバイル ===== */
+@media (max-width: 720px) {
+.container { padding: 24px 14px 60px; }
+
+```
+header { flex-direction: column; align-items: flex-start; gap: 6px; }
+.date-stamp { text-align: left; }
+
+.summary-item  { padding: 14px 10px; }
+.summary-value { font-size: 20px; }
+.summary-label { font-size: 9px; }
+
+.form-section { padding: 18px 14px; }
+
+.form-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-grid .field:first-child  { grid-column: 1 / -1; }
+.form-grid button.primary {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 13px;
+}
+```
+
+}
 </style>
 
 </head>
 <body>
-
 <div class="container">
 
   <header>
@@ -501,7 +487,7 @@ animation: fadeIn 0.3s ease-out;
     <div class="date-stamp" id="dateStamp"></div>
   </header>
 
-  <section class="summary" id="summary">
+  <section class="summary">
     <div class="summary-item">
       <div class="summary-label">Holdings</div>
       <div class="summary-value" id="sumCount">0</div>
@@ -511,7 +497,7 @@ animation: fadeIn 0.3s ease-out;
       <div class="summary-value positive" id="sumProfit">0</div>
     </div>
     <div class="summary-item">
-      <div class="summary-label">Stop Loss (-7%)</div>
+      <div class="summary-label">Stop Loss (−7%)</div>
       <div class="summary-value negative" id="sumLoss">0</div>
     </div>
   </section>
@@ -531,13 +517,18 @@ animation: fadeIn 0.3s ease-out;
         <label for="currentPrice">現在株価</label>
         <input type="number" id="currentPrice" step="0.01" min="0.01" required placeholder="0.00">
       </div>
+      <div class="field">
+        <label for="shares">保有株数</label>
+        <input type="number" id="shares" step="1" min="1" required placeholder="100">
+      </div>
       <button type="submit" class="primary">追加</button>
     </form>
   </section>
 
   <div class="legend">
     <div class="legend-item"><span class="swatch profit"></span>利確ライン（+20%超）</div>
-    <div class="legend-item"><span class="swatch loss"></span>損切ライン（-7%下回）</div>
+    <div class="legend-item"><span class="swatch loss"></span>損切ライン（−7%下回）</div>
+    <div class="legend-item" style="color:var(--ink-muted);font-size:11px;">✎ 数値をタップ／クリックで直接編集できます</div>
   </div>
 
   <div class="table-wrap">
@@ -547,6 +538,7 @@ animation: fadeIn 0.3s ease-out;
           <th>銘柄</th>
           <th class="num">取得単価</th>
           <th class="num">現在株価</th>
+          <th class="num">保有株数</th>
           <th class="num">損益率</th>
           <th>ステータス</th>
           <th></th>
@@ -566,144 +558,203 @@ animation: fadeIn 0.3s ease-out;
   </footer>
 
 </div>
-
 <script>
-  const STORAGE_KEY = 'portfolio_tracker_v1';
-  const PROFIT_THRESHOLD = 20;  // +20%
-  const LOSS_THRESHOLD = -7;    // -7%
+  const STORAGE_KEY      = 'portfolio_tracker_v2';
+  const PROFIT_THRESHOLD = 20;
+  const LOSS_THRESHOLD   = -7;
 
-  const $ = (id) => document.getElementById(id);
-  const form = $('stockForm');
-  const body = $('stockBody');
-  const emptyState = $('emptyState');
+const $   = id => document.getElementById(id);
+const pad = n  => String(n).padStart(2, ‘0’);
 
-  // 日付表示
-  const now = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  $('dateStamp').textContent =
-    `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
+const form    = $(‘stockForm’);
+const tbody   = $(‘stockBody’);
+const emptyEl = $(‘emptyState’);
 
-  // データ読み込み
-  let stocks = loadStocks();
+// 日付表示
+const now = new Date();
+$(‘dateStamp’).textContent =
+`${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
 
-  function loadStocks() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      console.warn('データの読み込みに失敗:', e);
-      return [];
-    }
+// ─── データ読み込み（v1からのマイグレーション対応）───
+let stocks = (() => {
+try {
+const raw = localStorage.getItem(STORAGE_KEY)
+|| localStorage.getItem(‘portfolio_tracker_v1’);
+const arr = raw ? JSON.parse(raw) : [];
+return arr.map(s => ({ shares: 1, …s }));
+} catch { return []; }
+})();
+
+function save() {
+localStorage.setItem(STORAGE_KEY, JSON.stringify(stocks));
+$(‘lastUpdate’).textContent =
+`Updated ${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
+}
+
+const calcRate = s => ((s.currentPrice - s.buyPrice) / s.buyPrice) * 100;
+const fmtPrice = n => n.toLocaleString(‘ja-JP’, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtInt   = n => Number(n).toLocaleString(‘ja-JP’);
+const esc      = str => { const d = document.createElement(‘div’); d.textContent = str; return d.innerHTML; };
+
+// ─── インライン編集 ───
+function startEdit(cell, idx, field) {
+if (cell.classList.contains(‘editing’)) return;
+cell.classList.add(‘editing’);
+const input = cell.querySelector(’.inline-input’);
+input.value = stocks[idx][field];
+input.focus();
+input.select();
+
+```
+function commit() {
+  const raw = field === 'shares'
+    ? parseInt(input.value, 10)
+    : parseFloat(input.value);
+  if (!isNaN(raw) && raw > 0) {
+    stocks[idx][field] = raw;
+    save();
   }
-
-  function saveStocks() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stocks));
-    $('lastUpdate').textContent =
-      `Updated ${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
-  }
-
-  function calcRate(buy, current) {
-    return ((current - buy) / buy) * 100;
-  }
-
-  function formatNum(n) {
-    return n.toLocaleString('ja-JP', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  function render() {
-    body.innerHTML = '';
-
-    if (stocks.length === 0) {
-      emptyState.style.display = 'block';
-    } else {
-      emptyState.style.display = 'none';
-    }
-
-    let profitCount = 0;
-    let lossCount = 0;
-
-    stocks.forEach((s, idx) => {
-      const rate = calcRate(s.buyPrice, s.currentPrice);
-      const isProfit = rate > PROFIT_THRESHOLD;
-      const isLoss = rate < LOSS_THRESHOLD;
-
-      if (isProfit) profitCount++;
-      if (isLoss) lossCount++;
-
-      const tr = document.createElement('tr');
-      if (isProfit) tr.className = 'profit-row';
-      else if (isLoss) tr.className = 'loss-row';
-
-      const sign = rate >= 0 ? '+' : '';
-      const pctClass = rate >= 0 ? 'up' : 'down';
-
-      let status = '—';
-      let statusClass = 'status';
-      if (isProfit) {
-        status = '利確ライン到達';
-        statusClass = 'status alert-profit';
-      } else if (isLoss) {
-        status = '損切ライン到達';
-        statusClass = 'status alert-loss';
-      } else {
-        status = '監視中';
-      }
-
-      tr.innerHTML = `
-        <td><span class="ticker">${escapeHtml(s.name)}</span></td>
-        <td class="num">¥${formatNum(s.buyPrice)}</td>
-        <td class="num">¥${formatNum(s.currentPrice)}</td>
-        <td class="num"><span class="pct ${pctClass}">${sign}${rate.toFixed(2)}%</span></td>
-        <td><span class="${statusClass}">${status}</span></td>
-        <td class="num"><button class="icon-btn" data-idx="${idx}" title="削除">×</button></td>
-      `;
-      body.appendChild(tr);
-    });
-
-    $('sumCount').textContent = stocks.length;
-    $('sumProfit').textContent = profitCount;
-    $('sumLoss').textContent = lossCount;
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  // フォーム送信
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = $('name').value.trim();
-    const buyPrice = parseFloat($('buyPrice').value);
-    const currentPrice = parseFloat($('currentPrice').value);
-
-    if (!name || isNaN(buyPrice) || isNaN(currentPrice) || buyPrice <= 0 || currentPrice <= 0) {
-      return;
-    }
-
-    stocks.push({ name, buyPrice, currentPrice });
-    saveStocks();
-    render();
-    form.reset();
-    $('name').focus();
-  });
-
-  // 削除
-  body.addEventListener('click', (e) => {
-    const btn = e.target.closest('.icon-btn');
-    if (!btn) return;
-    const idx = parseInt(btn.dataset.idx, 10);
-    if (!isNaN(idx)) {
-      if (confirm(`「${stocks[idx].name}」を削除しますか？`)) {
-        stocks.splice(idx, 1);
-        saveStocks();
-        render();
-      }
-    }
-  });
-
+  cell.classList.remove('editing');
   render();
+}
+
+input.onblur = commit;
+input.onkeydown = e => {
+  if (e.key === 'Enter')  { input.blur(); }
+  if (e.key === 'Escape') {
+    input.onblur = null;
+    cell.classList.remove('editing');
+    render();
+  }
+};
+```
+
+}
+
+// ─── 描画 ───
+function render() {
+tbody.innerHTML = ‘’;
+emptyEl.style.display = stocks.length === 0 ? ‘block’ : ‘none’;
+
+```
+let profitCount = 0, lossCount = 0;
+
+stocks.forEach((s, idx) => {
+  const r        = calcRate(s);
+  const isProfit = r > PROFIT_THRESHOLD;
+  const isLoss   = r < LOSS_THRESHOLD;
+  if (isProfit) profitCount++;
+  if (isLoss)   lossCount++;
+
+  const sign     = r >= 0 ? '+' : '';
+  const pctClass = r >= 0 ? 'up' : 'down';
+
+  let statusText  = '監視中';
+  let statusClass = 'status';
+  if (isProfit) { statusText = '利確ライン到達'; statusClass = 'status alert-profit'; }
+  if (isLoss)   { statusText = '損切ライン到達'; statusClass = 'status alert-loss'; }
+
+  const tr = document.createElement('tr');
+  if (isProfit)     tr.className = 'profit-row';
+  else if (isLoss)  tr.className = 'loss-row';
+
+  tr.innerHTML = `
+    <td>
+      <span class="cell-pad">
+        <span class="ticker">${esc(s.name)}</span>
+      </span>
+    </td>
+
+    <td class="editable-cell" data-idx="${idx}" data-field="buyPrice">
+      <span class="cell-pad cell-right">
+        <span class="edit-icon">✎</span>
+        <span class="val">¥${fmtPrice(s.buyPrice)}</span>
+      </span>
+      <input class="inline-input" type="number" step="0.01" min="0.01">
+    </td>
+
+    <td class="editable-cell" data-idx="${idx}" data-field="currentPrice">
+      <span class="cell-pad cell-right">
+        <span class="edit-icon">✎</span>
+        <span class="val">¥${fmtPrice(s.currentPrice)}</span>
+      </span>
+      <input class="inline-input" type="number" step="0.01" min="0.01">
+    </td>
+
+    <td class="editable-cell" data-idx="${idx}" data-field="shares">
+      <span class="cell-pad cell-right">
+        <span class="edit-icon">✎</span>
+        <span class="val">${fmtInt(s.shares)} 株</span>
+      </span>
+      <input class="inline-input" type="number" step="1" min="1">
+    </td>
+
+    <td>
+      <span class="cell-pad cell-right">
+        <span class="pct ${pctClass}">${sign}${r.toFixed(2)}%</span>
+      </span>
+    </td>
+
+    <td>
+      <span class="cell-pad">
+        <span class="${statusClass}">${statusText}</span>
+      </span>
+    </td>
+
+    <td class="action-cell">
+      <button class="icon-btn del-btn" data-idx="${idx}" title="削除">×</button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+});
+
+// 編集セルのクリックイベントを付与
+tbody.querySelectorAll('.editable-cell').forEach(cell => {
+  cell.addEventListener('click', () => {
+    startEdit(cell, parseInt(cell.dataset.idx, 10), cell.dataset.field);
+  });
+});
+
+$('sumCount').textContent  = stocks.length;
+$('sumProfit').textContent = profitCount;
+$('sumLoss').textContent   = lossCount;
+```
+
+}
+
+// ─── 新規追加 ───
+form.addEventListener(‘submit’, e => {
+e.preventDefault();
+const name         = $(‘name’).value.trim();
+const buyPrice     = parseFloat($(‘buyPrice’).value);
+const currentPrice = parseFloat($(‘currentPrice’).value);
+const shares       = parseInt($(‘shares’).value, 10);
+
+```
+if (!name || [buyPrice, currentPrice, shares].some(v => isNaN(v) || v <= 0)) return;
+
+stocks.push({ name, buyPrice, currentPrice, shares });
+save();
+render();
+form.reset();
+$('name').focus();
+```
+
+});
+
+// ─── 削除 ───
+tbody.addEventListener(‘click’, e => {
+const btn = e.target.closest(’.del-btn’);
+if (!btn) return;
+const idx = parseInt(btn.dataset.idx, 10);
+if (!isNaN(idx) && confirm(`「${stocks[idx].name}」を削除しますか？`)) {
+stocks.splice(idx, 1);
+save();
+render();
+}
+});
+
+render();
 </script>
 
 </body>
