@@ -717,6 +717,8 @@ var sharesVal    = document.getElementById(‘shares’).value.trim();
 var shares       = sharesVal === ‘’ ? 1 : parseInt(sharesVal, 10);
 
 ```
+alert('DEBUG: name=' + name + ' buy=' + buyPrice + ' cur=' + currentPrice + ' shares=' + shares);
+
 if (!name)                             { alert('銘柄名を入力してください'); return; }
 if (isNaN(buyPrice) || buyPrice <= 0)  { alert('取得単価を入力してください'); return; }
 if (isNaN(currentPrice) || currentPrice <= 0) { alert('現在株価を入力してください'); return; }
