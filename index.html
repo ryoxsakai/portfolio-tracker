@@ -728,8 +728,7 @@ $('sumLoss').textContent   = lossCount;
 }
 
 // ─── 新規追加 ───
-form.addEventListener(‘submit’, e => {
-e.preventDefault();
+function addStock() {
 const name         = $(‘name’).value.trim();
 const buyPrice     = parseFloat($(‘buyPrice’).value);
 const currentPrice = parseFloat($(‘currentPrice’).value);
@@ -745,11 +744,17 @@ if (isNaN(shares)       || shares <= 0)       { alert('保有株数を正しく�
 stocks.push({ name, buyPrice, currentPrice, shares });
 save();
 render();
-form.reset();
+$('name').value         = '';
+$('buyPrice').value     = '';
+$('currentPrice').value = '';
+$('shares').value       = '';
 $('name').focus();
 ```
 
-});
+}
+
+form.addEventListener(‘submit’, e => { e.preventDefault(); addStock(); });
+$(‘addBtn’).addEventListener(‘click’, e => { e.preventDefault(); addStock(); });
 
 // ─── 削除 ───
 tbody.addEventListener(‘click’, e => {
@@ -760,17 +765,6 @@ if (!isNaN(idx) && confirm(`「${stocks[idx].name}」を削除しますか？`))
 stocks.splice(idx, 1);
 save();
 render();
-}
-});
-
-// ─── ボタン直接クリック（モバイル保険）───
-document.addEventListener(‘DOMContentLoaded’, () => {
-const btn = $(‘addBtn’);
-if (btn) {
-btn.addEventListener(‘click’, () => {
-const f = $(‘stockForm’);
-if (f) f.dispatchEvent(new Event(‘submit’, { bubbles: true, cancelable: true }));
-});
 }
 });
 
