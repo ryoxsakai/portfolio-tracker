@@ -131,8 +131,8 @@ letter-spacing: -0.01em;
 color: #e8e6e0;
 }
 
-.summary-value.positive { color: var(–profit-ink); }
-.summary-value.negative { color: var(–loss-ink); }
+.summary-value.positive { color: #f08080; }
+.summary-value.negative { color: #7aaef0; }
 
 /* フォーム */
 .form-section {
@@ -148,8 +148,8 @@ content: ‘’;
 position: absolute;
 top: -1px; left: -1px;
 width: 20px; height: 20px;
-border-top: 2px solid var(–ink-soft);
-border-left: 2px solid var(–ink-soft);
+border-top: 2px solid #9a98a0;
+border-left: 2px solid #9a98a0;
 }
 
 .form-title {
@@ -210,8 +210,8 @@ font-family: ‘JetBrains Mono’, monospace;
 button.primary {
 -webkit-appearance: none;
 appearance: none;
-background: #e8e6e0;
-color: #16181d;
+background: #3a3d4a;
+color: #e8e6e0;
 border: none;
 padding: 10px 24px;
 font-size: 12px;
@@ -223,7 +223,7 @@ transition: background 0.2s;
 white-space: nowrap;
 }
 
-button.primary:hover { background: #9a98a0; }
+button.primary:hover { background: #4a4e60; }
 button.primary:active { opacity: 0.8; }
 
 /* 凡例 */
@@ -250,8 +250,8 @@ display: inline-block;
 flex-shrink: 0;
 }
 
-.swatch.profit { background: var(–profit); border-color: var(–profit-border); }
-.swatch.loss   { background: var(–loss);   border-color: var(–loss-border); }
+.swatch.profit { background: rgba(160,60,60,0.18); border-color: rgba(200,80,80,0.35); }
+.swatch.loss   { background: rgba(50,90,160,0.18); border-color: rgba(70,120,200,0.35); }
 
 /* テーブル */
 .table-wrap {
@@ -289,11 +289,11 @@ padding: 0;
 tbody tr:last-child td { border-bottom: none; }
 tbody tr { transition: background-color 0.3s; }
 
-tbody tr.profit-row { background: var(–profit); }
-tbody tr.profit-row td:first-child { border-left: 3px solid var(–profit-border); }
+tbody tr.profit-row { background: rgba(160,60,60,0.18); }
+tbody tr.profit-row td:first-child { border-left: 3px solid rgba(200,80,80,0.55); }
 
-tbody tr.loss-row { background: var(–loss); }
-tbody tr.loss-row td:first-child { border-left: 3px solid var(–loss-border); }
+tbody tr.loss-row { background: rgba(50,90,160,0.18); }
+tbody tr.loss-row td:first-child { border-left: 3px solid rgba(70,120,200,0.55); }
 
 /* セル内パディング（spanで統一） */
 .cell-pad {
@@ -342,7 +342,7 @@ font-size: 13px;
 display: none;
 width: 100%;
 background: #2a2d38;
-border: 1px solid var(–ink-soft);
+border: 1px solid #9a98a0;
 color: #e8e6e0;
 font-family: ‘JetBrains Mono’, monospace;
 font-size: 13px;
@@ -368,8 +368,8 @@ min-width: 68px;
 text-align: center;
 }
 
-.pct.up   { background: var(–profit); color: var(–profit-ink); border-color: var(–profit-border); }
-.pct.down { background: var(–loss);   color: var(–loss-ink);   border-color: var(–loss-border); }
+.pct.up   { background: rgba(160,60,60,0.18); color: #f08080; border-color: rgba(200,80,80,0.35); }
+.pct.down { background: rgba(50,90,160,0.18); color: #7aaef0; border-color: rgba(70,120,200,0.35); }
 
 .status {
 font-size: 10px;
@@ -378,8 +378,8 @@ text-transform: uppercase;
 color: #5a5860;
 }
 
-.status.alert-profit { color: var(–profit-ink); font-weight: 600; }
-.status.alert-loss   { color: var(–loss-ink);   font-weight: 600; }
+.status.alert-profit { color: #f08080; font-weight: 600; }
+.status.alert-loss   { color: #7aaef0; font-weight: 600; }
 
 /* 削除ボタン */
 .action-cell {
@@ -448,7 +448,7 @@ tbody tr { animation: fadeIn 0.25s ease-out; }
 
 .table-wrap::-webkit-scrollbar { height: 6px; }
 .table-wrap::-webkit-scrollbar-track { background: #1e2028; }
-.table-wrap::-webkit-scrollbar-thumb { background: var(–ink-muted); }
+.table-wrap::-webkit-scrollbar-thumb { background: #5a5860; }
 
 /* ===== モバイル ===== */
 @media (max-width: 720px) {
@@ -533,7 +533,7 @@ header { flex-direction: column; align-items: flex-start; gap: 6px; }
   <div class="legend">
     <div class="legend-item"><span class="swatch profit"></span>利確ライン（+20%超）</div>
     <div class="legend-item"><span class="swatch loss"></span>損切ライン（−7%下回）</div>
-    <div class="legend-item" style="color:var(--ink-muted);font-size:11px;">✎ 数値をタップ／クリックで直接編集できます</div>
+    <div class="legend-item" style="color:#5a5860;font-size:11px;">✎ 数値をタップ／クリックで直接編集できます</div>
   </div>
 
   <div class="table-wrap">
