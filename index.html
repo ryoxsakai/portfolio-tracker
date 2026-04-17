@@ -263,7 +263,7 @@ overflow-x: auto;
 table {
 width: 100%;
 border-collapse: collapse;
-min-width: 720px;
+min-width: 900px;
 }
 
 thead th {
@@ -498,6 +498,16 @@ header { flex-direction: column; align-items: flex-start; gap: 6px; }
       <div class="summary-value" id="sumCount">0</div>
     </div>
     <div class="summary-item">
+      <div class="summary-label">Total Value</div>
+      <div class="summary-value" id="sumValue">¥0</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Total P/L</div>
+      <div class="summary-value" id="sumPL">¥0</div>
+    </div>
+  </section>
+  <section class="summary" style="margin-top:-40px;">
+    <div class="summary-item">
       <div class="summary-label">Take Profit (+20%)</div>
       <div class="summary-value positive" id="sumProfit">0</div>
     </div>
@@ -544,6 +554,8 @@ header { flex-direction: column; align-items: flex-start; gap: 6px; }
           <th class="num">取得単価</th>
           <th class="num">現在株価</th>
           <th class="num">保有株数</th>
+          <th class="num">評価額</th>
+          <th class="num">評価損益</th>
           <th class="num">損益率</th>
           <th>ステータス</th>
           <th></th>
@@ -608,21 +620,30 @@ tbody.innerHTML = ‘’;
 if(stocks.length === 0){
 empty.style.display = ‘block’;
 el(‘sumCount’).textContent = el(‘sumProfit’).textContent = el(‘sumLoss’).textContent = ‘0’;
+el(‘sumValue’).textContent = ‘¥0’;
+el(‘sumPL’).textContent    = ‘¥0’;
+el(‘sumPL’).style.color    = ‘’;
 return;
 }
 empty.style.display = ‘none’;
 
-var pc=0, lc=0;
+var pc=0, lc=0, totalValue=0, totalPL=0;
 stocks.forEach(function(s, idx){
 var r = (s.currentPrice - s.buyPrice) / s.buyPrice * 100;
 var ip = r > PROFIT, il = r < LOSS;
 if(ip) pc++; if(il) lc++;
+totalValue += s.currentPrice * s.shares;
+totalPL    += (s.currentPrice - s.buyPrice) * s.shares;
 
 ```
 var tr = document.createElement('tr');
 if(ip) tr.className='profit-row'; else if(il) tr.className='loss-row';
 
 var sign = r>=0?'+':'', pc2 = r>=0?'up':'down';
+var marketValue = s.currentPrice * s.shares;
+var pl = (s.currentPrice - s.buyPrice) * s.shares;
+var plSign = pl >= 0 ? '+' : '-';
+var plColor = pl >= 0 ? '#f08080' : '#7aaef0';
 var st = '監視中', sc = 'status';
 if(ip){ st='利確ライン到達'; sc='status alert-profit'; }
 if(il){ st='損切ライン到達'; sc='status alert-loss'; }
@@ -641,6 +662,8 @@ tr.innerHTML =
     '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">'+fmtI(s.shares)+' 株</span></span>'+
     '<input class="inline-input" type="number" step="1" min="1">'+
   '</td>'+
+  '<td><span class="cell-pad cell-right"><span class="val">¥'+fmtP(marketValue)+'</span></span></td>'+
+  '<td><span class="cell-pad cell-right"><span class="val" style="color:'+plColor+';">'+plSign+'¥'+fmtP(Math.abs(pl))+'</span></span></td>'+
   '<td><span class="cell-pad cell-right"><span class="pct '+pc2+'">'+sign+r.toFixed(2)+'%</span></span></td>'+
   '<td><span class="cell-pad"><span class="'+sc+'">'+st+'</span></span></td>'+
   '<td class="action-cell"><button class="icon-btn del-btn" data-idx="'+idx+'">×</button></td>';
@@ -682,6 +705,10 @@ tbody.appendChild(tr);
 el(‘sumCount’).textContent  = stocks.length;
 el(‘sumProfit’).textContent = pc;
 el(‘sumLoss’).textContent   = lc;
+el(‘sumValue’).textContent  = ‘¥’ + fmtI(Math.round(totalValue));
+var plEl = el(‘sumPL’);
+plEl.textContent = (totalPL>=0?’+’:’-’) + ‘¥’ + fmtI(Math.round(Math.abs(totalPL)));
+plEl.style.color = totalPL>=0 ? ‘#f08080’ : ‘#7aaef0’;
 }
 
 // 追加
