@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JS Test</title>
+<style>
+  body { background: #16181d; color: #e8e6e0; font-family: sans-serif; padding: 20px; font-size: 16px; }
+  button { font-size: 18px; padding: 14px 24px; margin: 10px 0; width: 100%; }
+  #result { background: #2a2d38; padding: 16px; margin-top: 20px; min-height: 100px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <h1>JavaScript 動作テスト</h1>
+  <p id="status1">ステータス1: JSが実行されていません</p>
+  <button id="btn1">テスト1: ボタンを押す</button>
+  <button id="btn2">テスト2: LocalStorageに書き込み</button>
+  <div id="result">結果表示エリア</div>
+
+<script>
+document.getElementById('status1').textContent = '✓ ステータス1: JSが実行されました';
+document.getElementById('status1').style.color = '#7aff7a';
+
+document.getElementById('btn1').onclick = function() {
+  document.getElementById('result').textContent = '✓ テスト1成功: ボタンクリックが動作 (' + new Date().toLocaleTimeString() + ')';
+};
+
+document.getElementById('btn2').onclick = function() {
+  try {
+    localStorage.setItem('test_key', 'hello');
+    var v = localStorage.getItem('test_key');
+    document.getElementById('result').textContent = '✓ テスト2成功: LocalStorage動作 → ' + v;
+  } catch(e) {
+    document.getElementById('result').textContent = '✗ テスト2失敗: ' + e.message;
+  }
+};
+</script>
+
+</body>
+</html>
