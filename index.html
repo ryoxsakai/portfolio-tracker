@@ -2,9 +2,8 @@
 
 <html lang="ja">
 <head>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-
 <meta charset="UTF-8">
+<meta name="color-scheme" content="dark">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portfolio Tracker — 利確・損切管理</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,8 +31,9 @@
 - { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-background: var(–bg);
-color: var(–ink);
+color-scheme: dark;
+background: #16181d;
+color: #e8e6e0;
 font-family: ‘IBM Plex Sans JP’, -apple-system, sans-serif;
 font-weight: 400;
 line-height: 1.6;
@@ -41,7 +41,10 @@ line-height: 1.6;
 min-height: 100vh;
 }
 
+html { background: #16181d; }
+
 body {
+background: #16181d;
 background-image:
 radial-gradient(ellipse at 10% 0%, rgba(80, 60, 130, 0.12) 0%, transparent 50%),
 radial-gradient(ellipse at 90% 100%, rgba(30, 80, 140, 0.10) 0%, transparent 50%);
@@ -59,7 +62,7 @@ display: flex;
 justify-content: space-between;
 align-items: flex-end;
 padding-bottom: 32px;
-border-bottom: 1px solid var(–line);
+border-bottom: 1px solid #2e3040;
 margin-bottom: 40px;
 }
 
@@ -69,7 +72,7 @@ font-weight: 300;
 font-size: 12px;
 letter-spacing: 0.3em;
 text-transform: uppercase;
-color: var(–ink-muted);
+color: #5a5860;
 margin-bottom: 8px;
 }
 
@@ -79,19 +82,19 @@ font-weight: 400;
 font-size: clamp(2rem, 4vw, 2.8rem);
 letter-spacing: -0.02em;
 line-height: 1.05;
-color: var(–ink);
+color: #e8e6e0;
 }
 
 h1 em {
 font-style: italic;
 font-weight: 300;
-color: var(–ink-soft);
+color: #9a98a0;
 }
 
 .date-stamp {
 font-family: ‘JetBrains Mono’, monospace;
 font-size: 12px;
-color: var(–ink-muted);
+color: #5a5860;
 letter-spacing: 0.05em;
 text-align: right;
 }
@@ -100,14 +103,14 @@ text-align: right;
 .summary {
 display: grid;
 grid-template-columns: repeat(3, 1fr);
-background: var(–bg-card);
-border: 1px solid var(–line);
+background: #22252e;
+border: 1px solid #2e3040;
 margin-bottom: 40px;
 }
 
 .summary-item {
 padding: 22px 24px;
-border-right: 1px solid var(–line);
+border-right: 1px solid #2e3040;
 }
 
 .summary-item:last-child { border-right: none; }
@@ -116,7 +119,7 @@ border-right: 1px solid var(–line);
 font-size: 10px;
 letter-spacing: 0.14em;
 text-transform: uppercase;
-color: var(–ink-muted);
+color: #5a5860;
 margin-bottom: 6px;
 }
 
@@ -125,7 +128,7 @@ font-family: ‘Fraunces’, serif;
 font-size: 26px;
 font-weight: 400;
 letter-spacing: -0.01em;
-color: var(–ink);
+color: #e8e6e0;
 }
 
 .summary-value.positive { color: var(–profit-ink); }
@@ -133,8 +136,8 @@ color: var(–ink);
 
 /* フォーム */
 .form-section {
-background: var(–bg-card);
-border: 1px solid var(–line);
+background: #22252e;
+border: 1px solid #2e3040;
 padding: 28px 32px;
 margin-bottom: 32px;
 position: relative;
@@ -154,7 +157,7 @@ font-family: ‘Fraunces’, serif;
 font-size: 16px;
 font-weight: 500;
 margin-bottom: 20px;
-color: var(–ink-soft);
+color: #9a98a0;
 display: flex;
 align-items: center;
 gap: 10px;
@@ -164,7 +167,7 @@ gap: 10px;
 content: ‘+’;
 font-size: 22px;
 font-weight: 300;
-color: var(–ink-muted);
+color: #5a5860;
 }
 
 .form-grid {
@@ -179,25 +182,25 @@ display: block;
 font-size: 10px;
 letter-spacing: 0.1em;
 text-transform: uppercase;
-color: var(–ink-muted);
+color: #5a5860;
 margin-bottom: 8px;
 }
 
 .field input {
 width: 100%;
 border: none;
-border-bottom: 1px solid var(–line);
+border-bottom: 1px solid #2e3040;
 background: transparent;
 padding: 8px 0;
 font-size: 15px;
 font-family: inherit;
-color: var(–ink);
+color: #e8e6e0;
 transition: border-color 0.2s;
 }
 
 .field input:focus {
 outline: none;
-border-bottom-color: var(–ink-soft);
+border-bottom-color: #9a98a0;
 }
 
 .field input[type=“number”] {
@@ -207,8 +210,8 @@ font-family: ‘JetBrains Mono’, monospace;
 button.primary {
 -webkit-appearance: none;
 appearance: none;
-background: var(–ink);
-color: var(–bg);
+background: #e8e6e0;
+color: #16181d;
 border: none;
 padding: 10px 24px;
 font-size: 12px;
@@ -220,7 +223,7 @@ transition: background 0.2s;
 white-space: nowrap;
 }
 
-button.primary:hover { background: var(–ink-soft); }
+button.primary:hover { background: #9a98a0; }
 button.primary:active { opacity: 0.8; }
 
 /* 凡例 */
@@ -229,7 +232,7 @@ display: flex;
 gap: 20px;
 margin-bottom: 16px;
 font-size: 12px;
-color: var(–ink-soft);
+color: #9a98a0;
 flex-wrap: wrap;
 align-items: center;
 }
@@ -252,8 +255,8 @@ flex-shrink: 0;
 
 /* テーブル */
 .table-wrap {
-background: var(–bg-card);
-border: 1px solid var(–line);
+background: #22252e;
+border: 1px solid #2e3040;
 overflow-x: auto;
 }
 
@@ -269,16 +272,16 @@ padding: 14px 16px;
 font-size: 10px;
 letter-spacing: 0.12em;
 text-transform: uppercase;
-color: var(–ink-muted);
+color: #5a5860;
 font-weight: 500;
-border-bottom: 1px solid var(–line);
-background: var(–bg-elevated);
+border-bottom: 1px solid #2e3040;
+background: #1e2028;
 }
 
 thead th.num { text-align: right; }
 
 tbody td {
-border-bottom: 1px solid var(–line-soft);
+border-bottom: 1px solid #262830;
 vertical-align: middle;
 padding: 0;
 }
@@ -320,7 +323,7 @@ gap: 6px;
 .edit-icon {
 opacity: 0;
 font-size: 10px;
-color: var(–ink-muted);
+color: #5a5860;
 transition: opacity 0.15s;
 flex-shrink: 0;
 user-select: none;
@@ -338,9 +341,9 @@ font-size: 13px;
 .inline-input {
 display: none;
 width: 100%;
-background: var(–bg-input);
+background: #2a2d38;
 border: 1px solid var(–ink-soft);
-color: var(–ink);
+color: #e8e6e0;
 font-family: ‘JetBrains Mono’, monospace;
 font-size: 13px;
 padding: 8px 12px;
@@ -359,7 +362,7 @@ width: calc(100% - 24px);
 font-family: ‘JetBrains Mono’, monospace;
 font-size: 12px;
 padding: 3px 8px;
-border: 1px solid var(–line);
+border: 1px solid #2e3040;
 display: inline-block;
 min-width: 68px;
 text-align: center;
@@ -372,7 +375,7 @@ text-align: center;
 font-size: 10px;
 letter-spacing: 0.08em;
 text-transform: uppercase;
-color: var(–ink-muted);
+color: #5a5860;
 }
 
 .status.alert-profit { color: var(–profit-ink); font-weight: 600; }
@@ -389,8 +392,8 @@ button.icon-btn {
 -webkit-appearance: none;
 appearance: none;
 background: transparent;
-border: 1px solid var(–line);
-color: var(–ink-muted);
+border: 1px solid #2e3040;
+color: #5a5860;
 width: 28px; height: 28px;
 cursor: pointer;
 font-size: 14px;
@@ -401,15 +404,15 @@ justify-content: center;
 }
 
 button.icon-btn:hover {
-border-color: var(–ink-soft);
-color: var(–ink);
+border-color: #9a98a0;
+color: #e8e6e0;
 }
 
 /* empty state */
 .empty {
 padding: 70px 20px;
 text-align: center;
-color: var(–ink-muted);
+color: #5a5860;
 }
 
 .empty-mark {
@@ -417,7 +420,7 @@ font-family: ‘Fraunces’, serif;
 font-style: italic;
 font-size: 20px;
 margin-bottom: 6px;
-color: var(–ink-soft);
+color: #9a98a0;
 }
 
 .empty-sub { font-size: 13px; }
@@ -426,13 +429,13 @@ color: var(–ink-soft);
 footer {
 margin-top: 40px;
 padding-top: 20px;
-border-top: 1px solid var(–line);
+border-top: 1px solid #2e3040;
 display: flex;
 justify-content: space-between;
 font-size: 10px;
 letter-spacing: 0.1em;
 text-transform: uppercase;
-color: var(–ink-muted);
+color: #5a5860;
 }
 
 /* アニメーション */
@@ -444,7 +447,7 @@ to   { opacity: 1; transform: translateY(0); }
 tbody tr { animation: fadeIn 0.25s ease-out; }
 
 .table-wrap::-webkit-scrollbar { height: 6px; }
-.table-wrap::-webkit-scrollbar-track { background: var(–bg-elevated); }
+.table-wrap::-webkit-scrollbar-track { background: #1e2028; }
 .table-wrap::-webkit-scrollbar-thumb { background: var(–ink-muted); }
 
 /* ===== モバイル ===== */
