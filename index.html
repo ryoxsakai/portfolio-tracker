@@ -474,6 +474,18 @@
       padding: 13px;
     }
   }
+
+  /* ソート */
+  .sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  .sortable:hover { color: #e8e6e0; }
+  .sort-indicator {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 9px;
+    opacity: 0.5;
+  }
+  .sortable.sort-desc .sort-indicator::after { content: '▼'; opacity: 1; }
+  .sortable.sort-asc  .sort-indicator::after { content: '▲'; opacity: 1; }
 </style>
 </head>
 <body>
@@ -521,15 +533,15 @@
       </div>
       <div class="field">
         <label for="buyPrice">取得単価</label>
-        <input type="number" id="buyPrice" step="0.01" min="0.01" placeholder="0.00">
+        <input type="number" id="buyPrice" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
       </div>
       <div class="field">
         <label for="currentPrice">現在株価</label>
-        <input type="number" id="currentPrice" step="0.01" min="0.01" placeholder="0.00">
+        <input type="number" id="currentPrice" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
       </div>
       <div class="field">
         <label for="shares">保有株数</label>
-        <input type="number" id="shares" step="1" min="1" placeholder="100（省略可）">
+        <input type="number" id="shares" step="1" min="1" inputmode="numeric" placeholder="100（省略可）">
       </div>
       <button type="button" id="addBtn" class="primary">追加</button>
     </div>
@@ -545,13 +557,13 @@
     <table>
       <thead>
         <tr>
-          <th>銘柄</th>
-          <th class="num">取得単価</th>
-          <th class="num">現在株価</th>
-          <th class="num">保有株数</th>
-          <th class="num">評価額</th>
-          <th class="num">評価損益</th>
-          <th class="num">損益率</th>
+          <th class="sortable" data-sort="name">銘柄<span class="sort-indicator"></span></th>
+          <th class="num sortable" data-sort="buyPrice">取得単価<span class="sort-indicator"></span></th>
+          <th class="num sortable" data-sort="currentPrice">現在株価<span class="sort-indicator"></span></th>
+          <th class="num sortable" data-sort="shares">保有株数<span class="sort-indicator"></span></th>
+          <th class="num sortable" data-sort="value">評価額<span class="sort-indicator"></span></th>
+          <th class="num sortable" data-sort="pl">評価損益<span class="sort-indicator"></span></th>
+          <th class="num sortable" data-sort="rate">損益率<span class="sort-indicator"></span></th>
           <th>ステータス</th>
           <th></th>
         </tr>
@@ -592,6 +604,31 @@ var now = new Date();
 el('dateStamp').textContent = now.getFullYear()+'.'+pad(now.getMonth()+1)+'.'+pad(now.getDate());
 
 // データ
+var sortKey = 'rate';
+var sortDir = 'desc';
+
+function sortStocks(arr) {
+  var sorted = arr.slice();
+  sorted.sort(function(a, b) {
+    var va, vb;
+    switch (sortKey) {
+      case 'name':         va = a.name;         vb = b.name;         break;
+      case 'buyPrice':     va = a.buyPrice;     vb = b.buyPrice;     break;
+      case 'currentPrice': va = a.currentPrice; vb = b.currentPrice; break;
+      case 'shares':       va = a.shares;       vb = b.shares;       break;
+      case 'value':        va = a.currentPrice * a.shares; vb = b.currentPrice * b.shares; break;
+      case 'pl':           va = (a.currentPrice - a.buyPrice) * a.shares; vb = (b.currentPrice - b.buyPrice) * b.shares; break;
+      case 'rate':         va = (a.currentPrice - a.buyPrice) / a.buyPrice; vb = (b.currentPrice - b.buyPrice) / b.buyPrice; break;
+      default: va = 0; vb = 0;
+    }
+    if (typeof va === 'string') {
+      return sortDir === 'asc' ? va.localeCompare(vb, 'ja') : vb.localeCompare(va, 'ja');
+    }
+    return sortDir === 'asc' ? va - vb : vb - va;
+  });
+  return sorted;
+}
+
 var stocks = (function(){
   try {
     var raw = localStorage.getItem(KEY) || localStorage.getItem('portfolio_tracker_v1');
@@ -623,7 +660,19 @@ function render(){
   empty.style.display = 'none';
 
   var pc=0, lc=0, totalValue=0, totalPL=0;
-  stocks.forEach(function(s, idx){
+
+  // ソートインジケータの更新
+  var headers = document.querySelectorAll('.sortable');
+  headers.forEach(function(h) {
+    h.classList.remove('sort-asc', 'sort-desc');
+    if (h.dataset.sort === sortKey) {
+      h.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+
+  var sorted = sortStocks(stocks);
+  sorted.forEach(function(s){
+    var idx = stocks.indexOf(s);
     var r = (s.currentPrice - s.buyPrice) / s.buyPrice * 100;
     var ip = r > PROFIT, il = r < LOSS;
     if(ip) pc++; if(il) lc++;
@@ -646,15 +695,15 @@ function render(){
       '<td><span class="cell-pad"><span class="ticker">'+esc(s.name)+'</span></span></td>'+
       '<td class="editable-cell" data-idx="'+idx+'" data-field="buyPrice">'+
         '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥'+fmtP(s.buyPrice)+'</span></span>'+
-        '<input class="inline-input" type="number" step="0.01" min="0.01">'+
+        '<input class="inline-input" type="number" step="0.01" min="0.01" inputmode="decimal">'+
       '</td>'+
       '<td class="editable-cell" data-idx="'+idx+'" data-field="currentPrice">'+
         '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥'+fmtP(s.currentPrice)+'</span></span>'+
-        '<input class="inline-input" type="number" step="0.01" min="0.01">'+
+        '<input class="inline-input" type="number" step="0.01" min="0.01" inputmode="decimal">'+
       '</td>'+
       '<td class="editable-cell" data-idx="'+idx+'" data-field="shares">'+
         '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">'+fmtI(s.shares)+' 株</span></span>'+
-        '<input class="inline-input" type="number" step="1" min="1">'+
+        '<input class="inline-input" type="number" step="1" min="1" inputmode="numeric">'+
       '</td>'+
       '<td><span class="cell-pad cell-right"><span class="val">¥'+fmtP(marketValue)+'</span></span></td>'+
       '<td><span class="cell-pad cell-right"><span class="val" style="color:'+plColor+';">'+plSign+'¥'+fmtP(Math.abs(pl))+'</span></span></td>'+
@@ -721,6 +770,20 @@ el('addBtn').onclick = function(){
   el('name').value=''; el('buyPrice').value=''; el('currentPrice').value=''; el('shares').value='';
   el('name').focus();
 };
+
+// ソートヘッダーのクリック
+document.querySelectorAll('.sortable').forEach(function(h) {
+  h.addEventListener('click', function() {
+    var key = h.dataset.sort;
+    if (sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortKey = key;
+      sortDir = (key === 'name') ? 'asc' : 'desc';
+    }
+    render();
+  });
+});
 
 render();
 </script>
