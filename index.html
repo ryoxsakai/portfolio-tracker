@@ -345,7 +345,7 @@ background: #2a2d38;
 border: 1px solid #9a98a0;
 color: #e8e6e0;
 font-family: ‘JetBrains Mono’, monospace;
-font-size: 13px;
+font-size: 16px;
 padding: 8px 12px;
 outline: none;
 text-align: right;
@@ -512,15 +512,15 @@ header { flex-direction: column; align-items: flex-start; gap: 6px; }
     <div id="stockForm" class="form-grid">
       <div class="field">
         <label for="name">銘柄名 / Ticker</label>
-        <input type="text" id="name" required placeholder="例：トヨタ自動車">
+        <input type="text" id="name" placeholder="例：トヨタ自動車">
       </div>
       <div class="field">
         <label for="buyPrice">取得単価</label>
-        <input type="number" id="buyPrice" step="0.01" min="0.01" required placeholder="0.00">
+        <input type="number" id="buyPrice" step="0.01" min="0.01" placeholder="0.00">
       </div>
       <div class="field">
         <label for="currentPrice">現在株価</label>
-        <input type="number" id="currentPrice" step="0.01" min="0.01" required placeholder="0.00">
+        <input type="number" id="currentPrice" step="0.01" min="0.01" placeholder="0.00">
       </div>
       <div class="field">
         <label for="shares">保有株数</label>
@@ -564,183 +564,136 @@ header { flex-direction: column; align-items: flex-start; gap: 6px; }
 
 </div>
 <script>
-  const STORAGE_KEY      = 'portfolio_tracker_v2';
-  const PROFIT_THRESHOLD = 20;
-  const LOSS_THRESHOLD   = -7;
+var PROFIT = 20, LOSS = -7, KEY = 'portfolio_tracker_v2';
 
-const pad = n => String(n).padStart(2, ‘0’);
-const now = new Date();
-document.getElementById(‘dateStamp’).textContent =
-now.getFullYear() + ‘.’ + pad(now.getMonth()+1) + ‘.’ + pad(now.getDate());
+function pad(n){ return String(n).padStart(2,‘0’); }
+function esc(s){ return s.replace(/&/g,’&’).replace(/</g,’<’).replace(/>/g,’>’); }
+function fmtP(n){ return Number(n).toLocaleString(‘ja-JP’,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtI(n){ return Number(n).toLocaleString(‘ja-JP’); }
+function el(id){ return document.getElementById(id); }
 
-// データ読み込み
-function loadData() {
+// 日付
+var now = new Date();
+el(‘dateStamp’).textContent = now.getFullYear()+’.’+pad(now.getMonth()+1)+’.’+pad(now.getDate());
+
+// データ
+var stocks = (function(){
 try {
-var raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(‘portfolio_tracker_v1’);
-var arr = raw ? JSON.parse(raw) : [];
-return arr.map(function(s) { return { shares: 1, name: s.name, buyPrice: s.buyPrice, currentPrice: s.currentPrice, shares: s.shares || 1 }; });
-} catch(e) { return []; }
+var raw = localStorage.getItem(KEY) || localStorage.getItem(‘portfolio_tracker_v1’);
+if(!raw) return [];
+return JSON.parse(raw).map(function(s){
+return { name:s.name, buyPrice:Number(s.buyPrice), currentPrice:Number(s.currentPrice), shares:Number(s.shares)||1 };
+});
+} catch(e){ return []; }
+})();
+
+function save(){
+localStorage.setItem(KEY, JSON.stringify(stocks));
+el(‘lastUpdate’).textContent = ‘Updated ‘+pad(new Date().getHours())+’:’+pad(new Date().getMinutes());
 }
 
-var stocks = loadData();
-
-function save() {
-localStorage.setItem(STORAGE_KEY, JSON.stringify(stocks));
-document.getElementById(‘lastUpdate’).textContent =
-’Updated ’ + pad(new Date().getHours()) + ‘:’ + pad(new Date().getMinutes());
-}
-
-function esc(str) {
-return str.replace(/&/g,’&’).replace(/</g,’<’).replace(/>/g,’>’).replace(/”/g,’"’);
-}
-
-function fmtPrice(n) {
-return Number(n).toLocaleString(‘ja-JP’, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function fmtInt(n) {
-return Number(n).toLocaleString(‘ja-JP’);
-}
-
-function render() {
-var tbody   = document.getElementById(‘stockBody’);
-var emptyEl = document.getElementById(‘emptyState’);
+function render(){
+var tbody = el(‘stockBody’);
+var empty = el(‘emptyState’);
 tbody.innerHTML = ‘’;
 
-```
-if (stocks.length === 0) {
-  emptyEl.style.display = 'block';
-  document.getElementById('sumCount').textContent  = 0;
-  document.getElementById('sumProfit').textContent = 0;
-  document.getElementById('sumLoss').textContent   = 0;
-  return;
+if(stocks.length === 0){
+empty.style.display = ‘block’;
+el(‘sumCount’).textContent = el(‘sumProfit’).textContent = el(‘sumLoss’).textContent = ‘0’;
+return;
 }
-emptyEl.style.display = 'none';
+empty.style.display = ‘none’;
 
-var profitCount = 0, lossCount = 0;
-
-for (var i = 0; i < stocks.length; i++) {
-  (function(idx) {
-    var s = stocks[idx];
-    var r = ((s.currentPrice - s.buyPrice) / s.buyPrice) * 100;
-    var isProfit = r > PROFIT_THRESHOLD;
-    var isLoss   = r < LOSS_THRESHOLD;
-    if (isProfit) profitCount++;
-    if (isLoss)   lossCount++;
-
-    var sign     = r >= 0 ? '+' : '';
-    var pctClass = r >= 0 ? 'up' : 'down';
-    var statusText  = '監視中';
-    var statusClass = 'status';
-    if (isProfit) { statusText = '利確ライン到達'; statusClass = 'status alert-profit'; }
-    if (isLoss)   { statusText = '損切ライン到達'; statusClass = 'status alert-loss'; }
-
-    var tr = document.createElement('tr');
-    if (isProfit)    tr.className = 'profit-row';
-    else if (isLoss) tr.className = 'loss-row';
-
-    tr.innerHTML =
-      '<td><span class="cell-pad"><span class="ticker">' + esc(s.name) + '</span></span></td>' +
-      '<td class="editable-cell" data-idx="' + idx + '" data-field="buyPrice">' +
-        '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥' + fmtPrice(s.buyPrice) + '</span></span>' +
-        '<input class="inline-input" type="number" step="0.01" min="0.01">' +
-      '</td>' +
-      '<td class="editable-cell" data-idx="' + idx + '" data-field="currentPrice">' +
-        '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥' + fmtPrice(s.currentPrice) + '</span></span>' +
-        '<input class="inline-input" type="number" step="0.01" min="0.01">' +
-      '</td>' +
-      '<td class="editable-cell" data-idx="' + idx + '" data-field="shares">' +
-        '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">' + fmtInt(s.shares) + ' 株</span></span>' +
-        '<input class="inline-input" type="number" step="1" min="1">' +
-      '</td>' +
-      '<td><span class="cell-pad cell-right"><span class="pct ' + pctClass + '">' + sign + r.toFixed(2) + '%</span></span></td>' +
-      '<td><span class="cell-pad"><span class="' + statusClass + '">' + statusText + '</span></span></td>' +
-      '<td class="action-cell"><button class="icon-btn del-btn" data-idx="' + idx + '">×</button></td>';
-
-    // インライン編集
-    var editCells = tr.querySelectorAll('.editable-cell');
-    for (var j = 0; j < editCells.length; j++) {
-      editCells[j].addEventListener('click', (function(cell) {
-        return function() {
-          if (cell.classList.contains('editing')) return;
-          cell.classList.add('editing');
-          var input = cell.querySelector('.inline-input');
-          var cellIdx   = parseInt(cell.dataset.idx, 10);
-          var cellField = cell.dataset.field;
-          input.value = stocks[cellIdx][cellField];
-          input.focus();
-          input.select();
-
-          function commit() {
-            var v = cellField === 'shares' ? parseInt(input.value, 10) : parseFloat(input.value);
-            if (!isNaN(v) && v > 0) { stocks[cellIdx][cellField] = v; save(); }
-            cell.classList.remove('editing');
-            render();
-          }
-          input.onblur = commit;
-          input.onkeydown = function(e) {
-            if (e.key === 'Enter')  { input.blur(); }
-            if (e.key === 'Escape') { input.onblur = null; cell.classList.remove('editing'); render(); }
-          };
-        };
-      })(editCells[j]));
-    }
-
-    // 削除ボタン
-    tr.querySelector('.del-btn').addEventListener('click', function(e) {
-      e.stopPropagation();
-      var di = parseInt(e.currentTarget.dataset.idx, 10);
-      if (confirm('「' + stocks[di].name + '」を削除しますか？')) {
-        stocks.splice(di, 1);
-        save();
-        render();
-      }
-    });
-
-    tbody.appendChild(tr);
-  })(i);
-}
-
-document.getElementById('sumCount').textContent  = stocks.length;
-document.getElementById('sumProfit').textContent = profitCount;
-document.getElementById('sumLoss').textContent   = lossCount;
-```
-
-}
-
-// 追加処理
-function addStock() {
-var name         = document.getElementById(‘name’).value.trim();
-var buyPrice     = parseFloat(document.getElementById(‘buyPrice’).value);
-var currentPrice = parseFloat(document.getElementById(‘currentPrice’).value);
-var sharesVal    = document.getElementById(‘shares’).value.trim();
-var shares       = sharesVal === ‘’ ? 1 : parseInt(sharesVal, 10);
+var pc=0, lc=0;
+stocks.forEach(function(s, idx){
+var r = (s.currentPrice - s.buyPrice) / s.buyPrice * 100;
+var ip = r > PROFIT, il = r < LOSS;
+if(ip) pc++; if(il) lc++;
 
 ```
-alert('DEBUG: name=' + name + ' buy=' + buyPrice + ' cur=' + currentPrice + ' shares=' + shares);
+var tr = document.createElement('tr');
+if(ip) tr.className='profit-row'; else if(il) tr.className='loss-row';
 
-if (!name)                             { alert('銘柄名を入力してください'); return; }
-if (isNaN(buyPrice) || buyPrice <= 0)  { alert('取得単価を入力してください'); return; }
-if (isNaN(currentPrice) || currentPrice <= 0) { alert('現在株価を入力してください'); return; }
-if (isNaN(shares) || shares <= 0)      { alert('保有株数を正しく入力してください'); return; }
+var sign = r>=0?'+':'', pc2 = r>=0?'up':'down';
+var st = '監視中', sc = 'status';
+if(ip){ st='利確ライン到達'; sc='status alert-profit'; }
+if(il){ st='損切ライン到達'; sc='status alert-loss'; }
 
-stocks.push({ name: name, buyPrice: buyPrice, currentPrice: currentPrice, shares: shares });
-save();
-render();
-document.getElementById('name').value         = '';
-document.getElementById('buyPrice').value     = '';
-document.getElementById('currentPrice').value = '';
-document.getElementById('shares').value       = '';
-document.getElementById('name').focus();
-```
+tr.innerHTML =
+  '<td><span class="cell-pad"><span class="ticker">'+esc(s.name)+'</span></span></td>'+
+  '<td class="editable-cell" data-idx="'+idx+'" data-field="buyPrice">'+
+    '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥'+fmtP(s.buyPrice)+'</span></span>'+
+    '<input class="inline-input" type="number" step="0.01" min="0.01">'+
+  '</td>'+
+  '<td class="editable-cell" data-idx="'+idx+'" data-field="currentPrice">'+
+    '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥'+fmtP(s.currentPrice)+'</span></span>'+
+    '<input class="inline-input" type="number" step="0.01" min="0.01">'+
+  '</td>'+
+  '<td class="editable-cell" data-idx="'+idx+'" data-field="shares">'+
+    '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">'+fmtI(s.shares)+' 株</span></span>'+
+    '<input class="inline-input" type="number" step="1" min="1">'+
+  '</td>'+
+  '<td><span class="cell-pad cell-right"><span class="pct '+pc2+'">'+sign+r.toFixed(2)+'%</span></span></td>'+
+  '<td><span class="cell-pad"><span class="'+sc+'">'+st+'</span></span></td>'+
+  '<td class="action-cell"><button class="icon-btn del-btn" data-idx="'+idx+'">×</button></td>';
 
-}
-
-// イベント登録
-document.getElementById(‘addBtn’).addEventListener(‘click’, function(e) {
-e.preventDefault();
-addStock();
+// インライン編集
+tr.querySelectorAll('.editable-cell').forEach(function(cell){
+  cell.addEventListener('click', function(){
+    if(cell.classList.contains('editing')) return;
+    cell.classList.add('editing');
+    var inp = cell.querySelector('.inline-input');
+    var ci = parseInt(cell.dataset.idx,10), cf = cell.dataset.field;
+    inp.value = stocks[ci][cf]; inp.focus(); inp.select();
+    inp.onblur = function(){
+      var v = cf==='shares' ? parseInt(inp.value,10) : parseFloat(inp.value);
+      if(!isNaN(v) && v>0){ stocks[ci][cf]=v; save(); }
+      cell.classList.remove('editing'); render();
+    };
+    inp.onkeydown = function(e){
+      if(e.key==='Enter') inp.blur();
+      if(e.key==='Escape'){ inp.onblur=null; cell.classList.remove('editing'); render(); }
+    };
+  });
 });
+
+// 削除
+tr.querySelector('.del-btn').addEventListener('click', function(e){
+  e.stopPropagation();
+  var di = parseInt(e.currentTarget.dataset.idx,10);
+  if(confirm('「'+stocks[di].name+'」を削除しますか？')){
+    stocks.splice(di,1); save(); render();
+  }
+});
+
+tbody.appendChild(tr);
+```
+
+});
+
+el(‘sumCount’).textContent  = stocks.length;
+el(‘sumProfit’).textContent = pc;
+el(‘sumLoss’).textContent   = lc;
+}
+
+// 追加
+el(‘addBtn’).onclick = function(){
+var name = el(‘name’).value.trim();
+var buy  = parseFloat(el(‘buyPrice’).value);
+var cur  = parseFloat(el(‘currentPrice’).value);
+var sh   = el(‘shares’).value.trim();
+var shares = sh===’’ ? 1 : parseInt(sh,10);
+
+if(!name)                  { alert(‘銘柄名を入力してください’); return; }
+if(isNaN(buy)||buy<=0)     { alert(‘取得単価を入力してください’); return; }
+if(isNaN(cur)||cur<=0)     { alert(‘現在株価を入力してください’); return; }
+if(isNaN(shares)||shares<1){ alert(‘保有株数を入力してください’); return; }
+
+stocks.push({ name:name, buyPrice:buy, currentPrice:cur, shares:shares });
+save(); render();
+el(‘name’).value=’’; el(‘buyPrice’).value=’’; el(‘currentPrice’).value=’’; el(‘shares’).value=’’;
+el(‘name’).focus();
+};
 
 render();
 </script>
