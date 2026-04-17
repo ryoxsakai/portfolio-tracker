@@ -564,7 +564,15 @@ header { flex-direction: column; align-items: flex-start; gap: 6px; }
 
 </div>
 <script>
-var PROFIT = 20, LOSS = -7, KEY = 'portfolio_tracker_v2';
+// ─── エラーハンドラ（画面に表示）───
+window.addEventListener('error', function(e) {
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#cc3333;color:#fff;padding:12px;font-size:14px;z-index:9999;font-family:monospace;white-space:pre-wrap;';
+  d.textContent = 'JSエラー: ' + e.message + '\n' + (e.filename||'') + ':' + (e.lineno||'');
+  document.body.appendChild(d);
+});
+
+var PROFIT = 20, LOSS = -7, KEY = ‘portfolio_tracker_v2’;
 
 function pad(n){ return String(n).padStart(2,‘0’); }
 function esc(s){ return s.replace(/&/g,’&’).replace(/</g,’<’).replace(/>/g,’>’); }
