@@ -172,7 +172,65 @@ align-items: end;
 }
 
 @media (max-width: 720px) {
-.form-grid { grid-template-columns: 1fr; }
+.container {
+padding: 28px 16px 60px;
+}
+
+```
+header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.date-stamp {
+  text-align: left;
+}
+
+/* サマリー：スマホでは横3列を維持 */
+.summary {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.summary-item {
+  padding: 16px 12px;
+}
+
+.summary-value {
+  font-size: 22px;
+}
+
+.summary-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.form-section {
+  padding: 20px 16px;
+}
+
+.form-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* 銘柄名は2列にまたがる */
+.form-grid .field:first-child {
+  grid-column: 1 / -1;
+}
+
+/* 追加ボタンは2列にまたがる */
+.form-grid button.primary {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 14px;
+}
+
+.legend {
+  gap: 16px;
+}
+```
+
 }
 
 .field label {
