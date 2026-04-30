@@ -266,7 +266,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 900px;
+    min-width: 1040px;
   }
 
   thead th {
@@ -524,6 +524,13 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinning { display: inline-block; animation: spin 1s linear infinite; }
+
+  .code-cell .inline-input { text-align: center; }
+  .code-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #9a98a0;
+  }
 </style>
 </head>
 <body>
@@ -605,6 +612,7 @@
       <thead>
         <tr>
           <th class="sortable" data-sort="name">銘柄<span class="sort-indicator"></span></th>
+          <th class="sortable" data-sort="code">銘柄コード<span class="sort-indicator"></span></th>
           <th class="num sortable" data-sort="buyPrice">取得単価<span class="sort-indicator"></span></th>
           <th class="num sortable" data-sort="currentPrice">現在株価<span class="sort-indicator"></span></th>
           <th class="num sortable" data-sort="shares">保有株数<span class="sort-indicator"></span></th>
@@ -660,6 +668,7 @@ function sortStocks(arr) {
     var va, vb;
     switch (sortKey) {
       case 'name':         va = a.name;         vb = b.name;         break;
+      case 'code':         va = a.code||'';     vb = b.code||'';     break;
       case 'buyPrice':     va = a.buyPrice;     vb = b.buyPrice;     break;
       case 'currentPrice': va = a.currentPrice; vb = b.currentPrice; break;
       case 'shares':       va = a.shares;       vb = b.shares;       break;
@@ -739,7 +748,11 @@ function render(){
     if(il){ st='損切ライン到達'; sc='status alert-loss'; }
 
     tr.innerHTML =
-      '<td><span class="cell-pad"><span><span class="ticker">'+esc(s.name)+'</span>'+(s.code?'<span class="stock-code">'+esc(s.code)+'</span>':'')+'</span></span></td>'+
+      '<td><span class="cell-pad"><span class="ticker">'+esc(s.name)+'</span></span></td>'+
+      '<td class="editable-cell code-cell" data-idx="'+idx+'" data-field="code">'+
+        '<span class="cell-pad"><span class="edit-icon">✎</span><span class="val code-val">'+(s.code||'—')+'</span></span>'+
+        '<input class="inline-input" type="text" inputmode="numeric" maxlength="6">'+
+      '</td>'+
       '<td class="editable-cell" data-idx="'+idx+'" data-field="buyPrice">'+
         '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥'+fmtP(s.buyPrice)+'</span></span>'+
         '<input class="inline-input" type="number" step="0.01" min="0.01" inputmode="decimal">'+
@@ -758,8 +771,8 @@ function render(){
       '<td><span class="cell-pad"><span class="'+sc+'">'+st+'</span></span></td>'+
       '<td class="action-cell"><button class="icon-btn del-btn" data-idx="'+idx+'">×</button></td>';
 
-    // インライン編集
-    tr.querySelectorAll('.editable-cell').forEach(function(cell){
+    // インライン編集（数値フィールド）
+    tr.querySelectorAll('.editable-cell:not(.code-cell)').forEach(function(cell){
       cell.addEventListener('click', function(){
         if(cell.classList.contains('editing')) return;
         cell.classList.add('editing');
@@ -777,6 +790,57 @@ function render(){
         };
       });
     });
+
+    // 銘柄コードセル（非同期・確認ダイアログ付き）
+    (function(rowIdx){
+      var codeCell = tr.querySelector('.code-cell');
+      codeCell.addEventListener('click', function(){
+        if(codeCell.classList.contains('editing')) return;
+        codeCell.classList.add('editing');
+        var inp = codeCell.querySelector('.inline-input');
+        inp.value = stocks[rowIdx].code || '';
+        inp.focus(); inp.select();
+
+        async function commitCode(){
+          inp.onblur = null;
+          var newCode = inp.value.trim().replace(/\D/g,'');
+          var oldCode = stocks[rowIdx].code || '';
+          codeCell.classList.remove('editing');
+
+          if(newCode === oldCode){ render(); return; }
+
+          stocks[rowIdx].code = newCode;
+          save();
+          render();
+
+          if(!newCode) return;
+
+          try {
+            var map = await fetchQuotes([newCode]);
+            var q = map[newCode];
+            if(!q) throw new Error('銘柄が見つかりません（コード：' + newCode + '）');
+            var msg =
+              '【' + newCode + '】 ' + q.name + '\n' +
+              '現在株価：¥' + Number(q.price).toLocaleString('ja-JP') + '\n\n' +
+              '銘柄名と現在株価を上書きしますか？\n' +
+              '（キャンセルすると銘柄コードのみ保存されます）';
+            if(confirm(msg)){
+              stocks[rowIdx].name = q.name;
+              stocks[rowIdx].currentPrice = q.price;
+              save(); render();
+            }
+          } catch(e){
+            alert('株価の取得に失敗しました：' + e.message + '\n\n銘柄コードは保存されました。');
+          }
+        }
+
+        inp.onblur = commitCode;
+        inp.onkeydown = function(e){
+          if(e.key==='Enter'){ inp.onblur=null; commitCode(); }
+          if(e.key==='Escape'){ inp.onblur=null; codeCell.classList.remove('editing'); render(); }
+        };
+      });
+    }(idx));
 
     // 削除
     tr.querySelector('.del-btn').addEventListener('click', function(e){
