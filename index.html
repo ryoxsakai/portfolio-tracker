@@ -803,7 +803,7 @@ function render(){
 
         async function commitCode(){
           inp.onblur = null;
-          var newCode = inp.value.trim().replace(/\D/g,'');
+          var newCode = inp.value.trim().toUpperCase();
           var oldCode = stocks[rowIdx].code || '';
           codeCell.classList.remove('editing');
 
@@ -865,7 +865,7 @@ function render(){
 
 // 追加
 el('addBtn').onclick = function(){
-  var code = el('code').value.trim().replace(/\D/g,'');
+  var code = el('code').value.trim().toUpperCase();
   var name = el('name').value.trim();
   var buy  = parseFloat(el('buyPrice').value);
   var cur  = parseFloat(el('currentPrice').value);
@@ -954,7 +954,7 @@ async function refreshAllPrices() {
 
 // ─── 銘柄コード入力 → 銘柄名・株価の自動取得 ───
 async function fetchAndFillCode() {
-  var code = el('code').value.trim().replace(/\D/g,'');
+  var code = el('code').value.trim().toUpperCase();
   if (!code) return;
   el('code').value = code;
   el('codeFetchStatus').textContent = '取得中…';
