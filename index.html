@@ -175,7 +175,7 @@
 
   .form-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    grid-template-columns: 80px 2fr 1fr 1fr 1fr auto;
     gap: 16px;
     align-items: end;
   }
@@ -471,7 +471,6 @@
       gap: 12px;
     }
 
-    .form-grid .field:first-child  { grid-column: 1 / -1; }
     .form-grid button.primary {
       grid-column: 1 / -1;
       width: 100%;
@@ -490,6 +489,41 @@
   }
   .sortable.sort-desc .sort-indicator::after { content: '▼'; opacity: 1; }
   .sortable.sort-asc  .sort-indicator::after { content: '▲'; opacity: 1; }
+
+  /* ===== 株価API ===== */
+  .fetch-status {
+    font-size: 10px;
+    color: #9a98a0;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-left: 4px;
+  }
+
+  .refresh-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .price-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #5a5860;
+  }
+
+  .stock-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #5a5860;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-top: 2px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinning { display: inline-block; animation: spin 1s linear infinite; }
 </style>
 </head>
 <body>
@@ -532,16 +566,20 @@
     <div class="form-title">新規登録</div>
     <div id="stockForm" class="form-grid">
       <div class="field">
-        <label for="name">銘柄名 / Ticker</label>
-        <input type="text" id="name" placeholder="例：トヨタ自動車">
+        <label for="code">銘柄コード</label>
+        <input type="text" id="code" inputmode="numeric" placeholder="7203" maxlength="6">
+      </div>
+      <div class="field">
+        <label for="name">銘柄名 <span id="codeFetchStatus" class="fetch-status"></span></label>
+        <input type="text" id="name" placeholder="コード入力で自動取得">
       </div>
       <div class="field">
         <label for="buyPrice">取得単価</label>
         <input type="number" id="buyPrice" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
       </div>
       <div class="field">
-        <label for="currentPrice">現在株価</label>
-        <input type="number" id="currentPrice" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00">
+        <label for="currentPrice">現在株価 <span id="priceFetchStatus" class="fetch-status"></span></label>
+        <input type="number" id="currentPrice" step="0.01" min="0.01" inputmode="decimal" placeholder="自動取得">
       </div>
       <div class="field">
         <label for="shares">保有株数</label>
@@ -550,6 +588,11 @@
       <button type="button" id="addBtn" class="primary">追加</button>
     </div>
   </section>
+
+  <div class="refresh-bar">
+    <button type="button" id="refreshBtn" class="primary">↻ 株価を更新</button>
+    <span id="priceStatus" class="price-status"></span>
+  </div>
 
   <div class="legend">
     <div class="legend-item"><span class="swatch profit"></span>利確ライン（+20%超）</div>
@@ -638,7 +681,7 @@ var stocks = (function(){
     var raw = localStorage.getItem(KEY) || localStorage.getItem('portfolio_tracker_v1');
     if(!raw) return [];
     return JSON.parse(raw).map(function(s){
-      return { name:s.name, buyPrice:Number(s.buyPrice), currentPrice:Number(s.currentPrice), shares:Number(s.shares)||1 };
+      return { code:s.code||'', name:s.name, buyPrice:Number(s.buyPrice), currentPrice:Number(s.currentPrice), shares:Number(s.shares)||1 };
     });
   } catch(e){ return []; }
 })();
@@ -696,7 +739,7 @@ function render(){
     if(il){ st='損切ライン到達'; sc='status alert-loss'; }
 
     tr.innerHTML =
-      '<td><span class="cell-pad"><span class="ticker">'+esc(s.name)+'</span></span></td>'+
+      '<td><span class="cell-pad"><span><span class="ticker">'+esc(s.name)+'</span>'+(s.code?'<span class="stock-code">'+esc(s.code)+'</span>':'')+'</span></span></td>'+
       '<td class="editable-cell" data-idx="'+idx+'" data-field="buyPrice">'+
         '<span class="cell-pad cell-right"><span class="edit-icon">✎</span><span class="val">¥'+fmtP(s.buyPrice)+'</span></span>'+
         '<input class="inline-input" type="number" step="0.01" min="0.01" inputmode="decimal">'+
@@ -758,21 +801,22 @@ function render(){
 
 // 追加
 el('addBtn').onclick = function(){
+  var code = el('code').value.trim().replace(/\D/g,'');
   var name = el('name').value.trim();
   var buy  = parseFloat(el('buyPrice').value);
   var cur  = parseFloat(el('currentPrice').value);
   var sh   = el('shares').value.trim();
   var shares = sh==='' ? 1 : parseInt(sh,10);
 
-  if(!name)                  { alert('銘柄名を入力してください'); return; }
+  if(!name)                  { alert('銘柄名を入力してください（銘柄コードを入力すると自動取得されます）'); return; }
   if(isNaN(buy)||buy<=0)     { alert('取得単価を入力してください'); return; }
   if(isNaN(cur)||cur<=0)     { alert('現在株価を入力してください'); return; }
   if(isNaN(shares)||shares<1){ alert('保有株数を入力してください'); return; }
 
-  stocks.push({ name:name, buyPrice:buy, currentPrice:cur, shares:shares });
+  stocks.push({ code:code, name:name, buyPrice:buy, currentPrice:cur, shares:shares });
   save(); render();
-  el('name').value=''; el('buyPrice').value=''; el('currentPrice').value=''; el('shares').value='';
-  el('name').focus();
+  el('code').value=''; el('name').value=''; el('buyPrice').value=''; el('currentPrice').value=''; el('shares').value='';
+  el('code').focus();
 };
 
 // ソートヘッダーのクリック
@@ -790,6 +834,93 @@ document.querySelectorAll('.sortable').forEach(function(h) {
 });
 
 render();
+
+// ─── Yahoo Finance API ───
+async function fetchQuotes(codes) {
+  var symbols = codes.map(function(c){ return c + '.T'; }).join(',');
+  var endpoints = [
+    'https://query1.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=',
+    'https://query2.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=',
+  ];
+  for (var i = 0; i < endpoints.length; i++) {
+    try {
+      var res = await fetch(endpoints[i] + encodeURIComponent(symbols));
+      if (!res.ok) continue;
+      var data = await res.json();
+      var list = data && data.quoteResponse && data.quoteResponse.result;
+      if (!list || !list.length) continue;
+      var map = {};
+      list.forEach(function(q) {
+        var code = q.symbol.replace(/\.T$/, '');
+        map[code] = { name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice };
+      });
+      return map;
+    } catch(e) {}
+  }
+  throw new Error('APIに接続できませんでした');
+}
+
+// ─── 全銘柄の株価更新 ───
+async function refreshAllPrices() {
+  var withCode = stocks.filter(function(s){ return s.code; });
+  if (!withCode.length) { el('priceStatus').textContent = '銘柄コードが登録されていません'; return; }
+  var btn = el('refreshBtn');
+  var status = el('priceStatus');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinning">↻</span> 更新中…';
+  status.textContent = '';
+  try {
+    var codes = withCode.map(function(s){ return s.code; }).filter(function(c,i,a){ return a.indexOf(c)===i; });
+    var map = await fetchQuotes(codes);
+    var updated = 0;
+    stocks.forEach(function(s) {
+      if (!s.code) return;
+      var q = map[s.code];
+      if (q && q.price) { s.currentPrice = q.price; updated++; }
+    });
+    if (updated) { save(); render(); }
+    var t = new Date();
+    status.textContent = pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' 更新（' + updated + '銘柄）';
+  } catch(e) {
+    status.textContent = '取得失敗：' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = '↻ 株価を更新';
+}
+
+// ─── 銘柄コード入力 → 銘柄名・株価の自動取得 ───
+async function fetchAndFillCode() {
+  var code = el('code').value.trim().replace(/\D/g,'');
+  if (!code) return;
+  el('code').value = code;
+  el('codeFetchStatus').textContent = '取得中…';
+  el('priceFetchStatus').textContent = '';
+  try {
+    var map = await fetchQuotes([code]);
+    var q = map[code];
+    if (!q) throw new Error('銘柄が見つかりません（' + code + '）');
+    if (!el('name').value) el('name').value = q.name;
+    if (!el('currentPrice').value && q.price) el('currentPrice').value = q.price;
+    el('codeFetchStatus').textContent = '✓';
+    setTimeout(function(){ el('codeFetchStatus').textContent = ''; }, 2000);
+  } catch(e) {
+    el('codeFetchStatus').textContent = '取得失敗';
+  }
+}
+
+el('code').addEventListener('blur', fetchAndFillCode);
+el('code').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); fetchAndFillCode().then(function(){ el('buyPrice').focus(); }); }});
+
+// ─── 更新ボタン ───
+el('refreshBtn').addEventListener('click', refreshAllPrices);
+
+// ─── 自動更新（ページ読み込み時 + 5分毎） ───
+if (stocks.some(function(s){ return s.code; })) {
+  refreshAllPrices();
+}
+setInterval(function(){
+  if (stocks.some(function(s){ return s.code; })) refreshAllPrices();
+}, 5 * 60 * 1000);
 </script>
 </body>
 </html>
