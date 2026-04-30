@@ -574,7 +574,7 @@
     <div id="stockForm" class="form-grid">
       <div class="field">
         <label for="code">銘柄コード</label>
-        <input type="text" id="code" inputmode="numeric" placeholder="7203" maxlength="6">
+        <input type="text" id="code" placeholder="7203" maxlength="6">
       </div>
       <div class="field">
         <label for="name">銘柄名 <span id="codeFetchStatus" class="fetch-status"></span></label>
@@ -750,7 +750,7 @@ function render(){
     tr.innerHTML =
       '<td class="editable-cell code-cell" data-idx="'+idx+'" data-field="code">'+
         '<span class="cell-pad"><span class="edit-icon">✎</span><span class="val code-val">'+(s.code||'—')+'</span></span>'+
-        '<input class="inline-input" type="text" inputmode="numeric" maxlength="6">'+
+        '<input class="inline-input" type="text" maxlength="6">'+
       '</td>'+
       '<td><span class="cell-pad"><span class="ticker">'+esc(s.name)+'</span></span></td>'+
       '<td class="editable-cell" data-idx="'+idx+'" data-field="buyPrice">'+
