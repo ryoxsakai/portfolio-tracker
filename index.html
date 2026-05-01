@@ -817,8 +817,8 @@ function render(){
 
           try {
             var map = await fetchQuotes([newCode]);
-            var q = map[newCode];
-            if(!q) throw new Error('銘柄が見つかりません（コード：' + newCode + '）');
+            var q = map[newCode.toUpperCase()];
+            if(!q) throw new Error('Yahoo Finance に銘柄データがありません（' + newCode + '.T）\nコードをご確認いただくか、銘柄名・株価を手動で入力してください');
             var msg =
               '【' + newCode + '】 ' + q.name + '\n' +
               '現在株価：¥' + Number(q.price).toLocaleString('ja-JP') + '\n\n' +
@@ -901,25 +901,27 @@ render();
 
 // ─── Yahoo Finance API ───
 async function fetchQuotes(codes) {
-  var symbols = codes.map(function(c){ return c + '.T'; }).join(',');
+  var symbols = codes.map(function(c){ return encodeURIComponent(c + '.T'); }).join(',');
   var endpoints = [
     'https://query1.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=',
     'https://query2.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=',
   ];
   for (var i = 0; i < endpoints.length; i++) {
     try {
-      var res = await fetch(endpoints[i] + encodeURIComponent(symbols));
+      var res = await fetch(endpoints[i] + symbols);
       if (!res.ok) continue;
       var data = await res.json();
       var list = data && data.quoteResponse && data.quoteResponse.result;
-      if (!list || !list.length) continue;
+      if (!list) continue;
       var map = {};
       list.forEach(function(q) {
-        var code = q.symbol.replace(/\.T$/, '');
-        map[code] = { name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice };
+        var key = q.symbol.replace(/\.T$/i, '').toUpperCase();
+        map[key] = { name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice };
       });
       return map;
-    } catch(e) {}
+    } catch(e) {
+      console.error('fetchQuotes:', e);
+    }
   }
   throw new Error('APIに接続できませんでした');
 }
@@ -939,7 +941,7 @@ async function refreshAllPrices() {
     var updated = 0;
     stocks.forEach(function(s) {
       if (!s.code) return;
-      var q = map[s.code];
+      var q = map[s.code.toUpperCase()];
       if (q && q.price) { s.currentPrice = q.price; updated++; }
     });
     if (updated) { save(); render(); }
@@ -961,8 +963,8 @@ async function fetchAndFillCode() {
   el('priceFetchStatus').textContent = '';
   try {
     var map = await fetchQuotes([code]);
-    var q = map[code];
-    if (!q) throw new Error('銘柄が見つかりません（' + code + '）');
+    var q = map[code.toUpperCase()];
+    if (!q) throw new Error('Yahoo Finance に銘柄データがありません（' + code + '.T）\n銘柄名・株価を手動で入力してください');
     if (!el('name').value) el('name').value = q.name;
     if (!el('currentPrice').value && q.price) el('currentPrice').value = q.price;
     el('codeFetchStatus').textContent = '✓';
