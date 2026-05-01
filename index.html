@@ -531,6 +531,56 @@
     font-size: 13px;
     color: #9a98a0;
   }
+
+  /* ===== 設定モーダル ===== */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-box {
+    background: #22252e;
+    border: 1px solid #2e3040;
+    padding: 32px;
+    max-width: 420px;
+    width: 100%;
+    position: relative;
+  }
+  .modal-box::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 20px; height: 20px;
+    border-top: 2px solid #e8e6e0;
+    border-left: 2px solid #e8e6e0;
+  }
+  .modal-desc {
+    font-size: 12px;
+    color: #9a98a0;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+  .modal-status {
+    font-size: 12px;
+    padding: 10px 12px;
+    background: #2a2d38;
+    color: #9a98a0;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .modal-note {
+    font-size: 10px;
+    color: #5a5860;
+    margin-top: 10px;
+    line-height: 1.6;
+  }
 </style>
 </head>
 <body>
@@ -599,6 +649,32 @@
   <div class="refresh-bar">
     <button type="button" id="refreshBtn" class="primary">↻ 株価を更新</button>
     <span id="priceStatus" class="price-status"></span>
+    <button type="button" id="settingsBtn" class="icon-btn" style="margin-left:auto;" title="API設定">⚙</button>
+  </div>
+
+  <div id="settingsModal" class="modal" style="display:none">
+    <div class="modal-box">
+      <div class="form-title" style="margin-bottom:12px;">⚙ API 設定 — J-Quants</div>
+      <p class="modal-desc">
+        J-Quants は JPX（日本取引所グループ）公式 API です。<br>
+        全上場銘柄（194A 等の英数字コードを含む）の終値を取得できます。<br>
+        無料プランは <strong style="color:#e8e6e0;">jpx-jquants.com</strong> で登録できます。
+      </p>
+      <div class="modal-status" id="jqStatus">未設定</div>
+      <div class="field" style="margin-top:18px;">
+        <label for="jqEmail">メールアドレス</label>
+        <input type="email" id="jqEmail" autocomplete="email" placeholder="登録メールアドレス">
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label for="jqPassword">パスワード</label>
+        <input type="password" id="jqPassword" autocomplete="current-password" placeholder="パスワード">
+      </div>
+      <p class="modal-note">認証後はリフレッシュトークンのみ保存されます。パスワードは保存されません。<br>※ 取得される価格は前日終値です（リアルタイムではありません）。</p>
+      <div style="display:flex;gap:12px;margin-top:22px;">
+        <button class="primary" id="jqSaveBtn">接続テスト・保存</button>
+        <button class="primary" id="jqCloseBtn">閉じる</button>
+      </div>
+    </div>
   </div>
 
   <div class="legend">
@@ -899,8 +975,8 @@ document.querySelectorAll('.sortable').forEach(function(h) {
 
 render();
 
-// ─── Yahoo Finance API ───
-async function fetchQuotes(codes) {
+// ─── Yahoo Finance ───
+async function fetchFromYahoo(codes) {
   var symbols = codes.map(function(c){ return encodeURIComponent(c + '.T'); }).join(',');
   var endpoints = [
     'https://query1.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=',
@@ -920,10 +996,95 @@ async function fetchQuotes(codes) {
       });
       return map;
     } catch(e) {
-      console.error('fetchQuotes:', e);
+      console.error('Yahoo Finance:', e);
     }
   }
-  throw new Error('APIに接続できませんでした');
+  return {};
+}
+
+// ─── J-Quants API ───
+var JQ_KEY = 'jq_refresh_token';
+
+async function jquantsLogin(email, password) {
+  var res = await fetch('https://api.jquants.com/v1/token/auth_user', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({mailaddress: email, password: password})
+  });
+  if (!res.ok) throw new Error('メールアドレスまたはパスワードが違います（HTTP ' + res.status + '）');
+  var d = await res.json();
+  if (!d.refreshToken) throw new Error('認証レスポンスが不正です');
+  localStorage.setItem(JQ_KEY, d.refreshToken);
+  return d.refreshToken;
+}
+
+async function jquantsGetIdToken() {
+  var rt = localStorage.getItem(JQ_KEY);
+  if (!rt) throw new Error('jq_not_configured');
+  var res = await fetch('https://api.jquants.com/v1/token/auth_refresh?refreshToken=' + encodeURIComponent(rt), {method: 'POST'});
+  if (!res.ok) {
+    if (res.status === 401) { localStorage.removeItem(JQ_KEY); throw new Error('jq_expired'); }
+    throw new Error('jq_auth_error');
+  }
+  var d = await res.json();
+  if (!d.idToken) throw new Error('jq_no_token');
+  return d.idToken;
+}
+
+function jquantsDateStr(daysAgo) {
+  var d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+}
+
+async function fetchFromJQuants(codes) {
+  var idToken = await jquantsGetIdToken();
+  var headers = {'Authorization': 'Bearer ' + idToken};
+  var map = {};
+  for (var ci = 0; ci < codes.length; ci++) {
+    var code = codes[ci];
+    try {
+      var iRes = await fetch('https://api.jquants.com/v1/listed/info?code=' + encodeURIComponent(code), {headers: headers});
+      var iData = await iRes.json();
+      var info = iData.info && iData.info[0];
+      var name = info ? (info.CompanyName || code) : code;
+      var price = null;
+      for (var di = 0; di < 7; di++) {
+        var ds = jquantsDateStr(di);
+        var pRes = await fetch('https://api.jquants.com/v1/prices/daily_quotes?code=' + encodeURIComponent(code) + '&date=' + ds, {headers: headers});
+        var pData = await pRes.json();
+        if (pData.daily_quotes && pData.daily_quotes.length > 0) {
+          price = pData.daily_quotes[0].Close;
+          break;
+        }
+      }
+      if (name || price !== null) {
+        map[code.toUpperCase()] = {name: name, price: price};
+      }
+    } catch(e) {
+      console.error('J-Quants error for', code, ':', e.message);
+    }
+  }
+  return map;
+}
+
+// ─── 統合フェッチ（Yahoo → J-Quants フォールバック） ───
+async function fetchQuotes(codes) {
+  var map = await fetchFromYahoo(codes);
+  var missing = codes.filter(function(c){ return !map[c.toUpperCase()]; });
+  if (missing.length > 0 && localStorage.getItem(JQ_KEY)) {
+    try {
+      var jqMap = await fetchFromJQuants(missing);
+      Object.assign(map, jqMap);
+    } catch(e) {
+      if (e.message === 'jq_expired') {
+        el('priceStatus').textContent = 'J-Quantsトークン期限切れ。⚙から再設定してください';
+      } else if (e.message !== 'jq_not_configured') {
+        console.error('J-Quants:', e);
+      }
+    }
+  }
+  return map;
 }
 
 // ─── 全銘柄の株価更新 ───
@@ -964,7 +1125,10 @@ async function fetchAndFillCode() {
   try {
     var map = await fetchQuotes([code]);
     var q = map[code.toUpperCase()];
-    if (!q) throw new Error('Yahoo Finance に銘柄データがありません（' + code + '.T）\n銘柄名・株価を手動で入力してください');
+    if (!q) {
+      var hint = localStorage.getItem(JQ_KEY) ? '' : '\n⚙ から J-Quants を設定すると新興株も取得できます';
+      throw new Error('銘柄データが見つかりません（' + code + '）\n銘柄名・株価を手動で入力してください' + hint);
+    }
     if (!el('name').value) el('name').value = q.name;
     if (!el('currentPrice').value && q.price) el('currentPrice').value = q.price;
     el('codeFetchStatus').textContent = '✓';
@@ -979,6 +1143,43 @@ el('code').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preve
 
 // ─── 更新ボタン ───
 el('refreshBtn').addEventListener('click', refreshAllPrices);
+
+// ─── 設定モーダル ───
+function jqUpdateStatus(msg, color) {
+  var s = el('jqStatus');
+  s.textContent = msg;
+  s.style.color = color || '#9a98a0';
+}
+
+function jqOpenModal() {
+  var rt = localStorage.getItem(JQ_KEY);
+  jqUpdateStatus(rt ? '✓ 接続済み（リフレッシュトークンあり）' : '未設定', rt ? '#7aaef0' : '#9a98a0');
+  el('jqEmail').value = '';
+  el('jqPassword').value = '';
+  el('settingsModal').style.display = 'flex';
+}
+
+el('settingsBtn').addEventListener('click', jqOpenModal);
+el('jqCloseBtn').addEventListener('click', function(){ el('settingsModal').style.display = 'none'; });
+el('settingsModal').addEventListener('click', function(e){ if(e.target===el('settingsModal')) el('settingsModal').style.display='none'; });
+
+el('jqSaveBtn').addEventListener('click', async function(){
+  var email = el('jqEmail').value.trim();
+  var password = el('jqPassword').value;
+  if (!email || !password) { jqUpdateStatus('メールアドレスとパスワードを入力してください'); return; }
+  el('jqSaveBtn').disabled = true;
+  jqUpdateStatus('接続中…');
+  try {
+    await jquantsLogin(email, password);
+    await jquantsGetIdToken();
+    jqUpdateStatus('✓ 接続成功！設定を保存しました', '#7aaef0');
+    el('jqEmail').value = '';
+    el('jqPassword').value = '';
+  } catch(e) {
+    jqUpdateStatus('✗ ' + e.message, '#f08080');
+  }
+  el('jqSaveBtn').disabled = false;
+});
 
 // ─── 自動更新（ページ読み込み時 + 5分毎） ───
 if (stocks.some(function(s){ return s.code; })) {
