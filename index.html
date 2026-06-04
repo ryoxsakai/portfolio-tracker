@@ -1023,8 +1023,17 @@ async function fetchYahoo(codes) {
 }
 
 // ── J-Quants ──
+const JQ_V1 = 'https://api.jquants.com/v1';
+const JQ_V2 = 'https://api.jquants.com/v2';
+
+function jqDate(daysAgo) {
+  const d = new Date(); d.setDate(d.getDate()-daysAgo);
+  return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate());
+}
+
+// ── V1: メール/パスワード認証（旧ユーザー向け） ──
 async function jqLogin(email, pass) {
-  const res = await fetch('https://api.jquants.com/v1/token/auth_user', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mailaddress:email,password:pass}) });
+  const res = await fetch(JQ_V1+'/token/auth_user', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mailaddress:email,password:pass}) });
   if (!res.ok) throw new Error('メールアドレスまたはパスワードが違います（HTTP '+res.status+'）');
   const d = await res.json();
   if (!d.refreshToken) throw new Error('認証レスポンスが不正です');
@@ -1035,46 +1044,82 @@ async function jqLogin(email, pass) {
 async function jqIdToken() {
   const key = localStorage.getItem(JQK);
   if (!key) throw new Error('jq_not_configured');
-  const mode = localStorage.getItem(JQ_MODE) || 'refresh';
-
-  if (mode === 'apikey') {
-    // ダッシュボードのAPI Key → そのままBearer tokenとして使用（交換不要）
-    return key;
-  }
-
-  // メール認証で取得したリフレッシュトークン → auth_refresh で交換
-  const res = await fetch('https://api.jquants.com/v1/token/auth_refresh?refreshToken='+encodeURIComponent(key), {method:'POST'});
+  const res = await fetch(JQ_V1+'/token/auth_refresh?refreshToken='+encodeURIComponent(key), {method:'POST'});
   if (!res.ok) {
-    if (res.status === 401) { localStorage.removeItem(JQK); throw new Error('トークンの期限が切れました（再設定してください）'); }
+    if (res.status === 401) { localStorage.removeItem(JQK); throw new Error('トークン期限切れ（再設定してください）'); }
     throw new Error('認証エラー（HTTP '+res.status+'）');
   }
   const d = await res.json();
   if (!d.idToken) throw new Error('IDトークンを取得できませんでした');
   return d.idToken;
 }
-function jqDate(daysAgo) {
-  const d = new Date(); d.setDate(d.getDate()-daysAgo);
-  return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate());
-}
-async function fetchJQuants(codes) {
+async function fetchJQuantsV1(codes) {
   const idToken = await jqIdToken();
   const hdrs = {'Authorization':'Bearer '+idToken};
-  const map={};
+  const map = {};
   for (const code of codes) {
     try {
-      const ir = await fetch('https://api.jquants.com/v1/listed/info?code='+encodeURIComponent(code), {headers:hdrs});
+      const ir = await fetch(JQ_V1+'/listed/info?code='+encodeURIComponent(code), {headers:hdrs});
       const id2 = await ir.json();
       const name = id2.info?.[0]?.CompanyName || code;
       let price = null;
       for (let di=0; di<7; di++) {
-        const pr = await fetch('https://api.jquants.com/v1/prices/daily_quotes?code='+encodeURIComponent(code)+'&date='+jqDate(di), {headers:hdrs});
+        const pr = await fetch(JQ_V1+'/prices/daily_quotes?code='+encodeURIComponent(code)+'&date='+jqDate(di), {headers:hdrs});
         const pd = await pr.json();
         if (pd.daily_quotes?.length) { price = pd.daily_quotes[0].Close; break; }
       }
-      if (name || price !== null) map[code.toUpperCase()] = { name, price };
-    } catch(e) { console.error('JQ', code, e.message); }
+      if (price !== null) map[code.toUpperCase()] = { name, price };
+    } catch(e) { console.error('JQ v1', code, e.message); }
   }
   return map;
+}
+
+// ── V2: APIキー認証（2025年12月以降の新ユーザー向け） ──
+async function fetchJQuantsV2(codes, apiKey) {
+  const hdrs = {'x-api-key': apiKey};
+  const map = {};
+  for (const code of codes) {
+    try {
+      // 銘柄名を取得（オプション）
+      let name = code;
+      try {
+        const mr = await fetch(JQ_V2+'/equities/master?code='+encodeURIComponent(code), {headers:hdrs});
+        if (mr.ok) {
+          const md = await mr.json();
+          const item = (md.data||[])[0];
+          if (item) name = item.CompanyName || item.company_name || code;
+        }
+      } catch(e) {}
+
+      // 直近7日間の終値を取得
+      let price = null;
+      for (let di=0; di<7; di++) {
+        const ds = jqDate(di);
+        const pr = await fetch(JQ_V2+'/equities/bars/daily?code='+encodeURIComponent(code)+'&date='+ds, {headers:hdrs});
+        if (!pr.ok) continue;
+        const pd = await pr.json();
+        const items = pd.data || [];
+        if (items.length > 0) {
+          const item = items[0];
+          // V2はカラム名が短縮されている場合がある
+          price = item.Close ?? item.close ?? item.AdjClose ?? item.adj_close ?? null;
+          if (price !== null) break;
+        }
+      }
+      if (price !== null) map[code.toUpperCase()] = { name, price };
+    } catch(e) { console.error('JQ v2', code, e.message); }
+  }
+  return map;
+}
+
+async function fetchJQuants(codes) {
+  const mode = localStorage.getItem(JQ_MODE) || 'refresh';
+  if (mode === 'apikey') {
+    const apiKey = localStorage.getItem(JQK);
+    if (!apiKey) throw new Error('jq_not_configured');
+    return await fetchJQuantsV2(codes, apiKey);
+  }
+  return await fetchJQuantsV1(codes);
 }
 
 async function fetchQuotes(codes) {
@@ -1252,11 +1297,11 @@ document.getElementById('jqTokenSave').addEventListener('click', async function(
   this.disabled = true;
   jqSetStatus('接続テスト中…');
   try {
-    // APIキーをBearer tokenとして実際のAPIに問い合わせてテスト
-    const testRes = await fetch('https://api.jquants.com/v1/listed/info?code=7203', {
-      headers: {'Authorization': 'Bearer ' + token}
+    // V2 APIキー（x-api-key）で接続テスト
+    const testRes = await fetch(JQ_V2+'/equities/bars/daily?code=7203&date='+jqDate(1), {
+      headers: {'x-api-key': token}
     });
-    if (!testRes.ok) throw new Error('接続失敗（HTTP ' + testRes.status + '）\nAPIキーをご確認ください');
+    if (!testRes.ok) throw new Error('接続失敗（HTTP ' + testRes.status + '）— APIキーをご確認ください');
     localStorage.setItem(JQK, token);
     localStorage.setItem(JQ_MODE, 'apikey');
     jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
