@@ -453,28 +453,28 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 
       <!-- 認証方式トグル -->
       <div style="display:flex;background:var(--neutral);border-radius:10px;padding:3px;margin-bottom:14px">
-        <button class="pv-btn on" id="jqMethodPass" style="font-size:12px">メール・パスワード</button>
-        <button class="pv-btn" id="jqMethodToken" style="font-size:12px">リフレッシュトークン</button>
+        <button class="pv-btn on" id="jqMethodToken" style="font-size:12px">APIキーで設定（推奨）</button>
+        <button class="pv-btn" id="jqMethodPass" style="font-size:12px">メール・パスワード</button>
+      </div>
+
+      <!-- APIキー直接入力欄（デフォルト表示） -->
+      <div id="jqTokenSection">
+        <div class="ff">
+          <label class="fl">APIキー</label>
+          <input class="fi" type="text" id="jqTokenInput" placeholder="APIキーを貼り付け" autocomplete="off" style="font-family:'JetBrains Mono',monospace;font-size:12px">
+        </div>
+        <p style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:12px">
+          <a href="https://jpx-jquants.com/ja/dashboard/api-keys" target="_blank" style="color:var(--accent2)">jpx-jquants.com → ダッシュボード → API Key</a> でコピーして貼り付けてください。
+        </p>
+        <button class="btn-p" id="jqTokenSave">保存・接続テスト</button>
       </div>
 
       <!-- メール・パスワード入力欄 -->
-      <div id="jqPassSection">
+      <div id="jqPassSection" style="display:none">
         <div class="ff"><label class="fl">メールアドレス</label><input class="fi" type="email" id="jqEmail" autocomplete="email" placeholder="登録メールアドレス"></div>
         <div class="ff"><label class="fl">パスワード</label><input class="fi" type="password" id="jqPass" autocomplete="current-password" placeholder="パスワード"></div>
-        <p style="font-size:11px;color:var(--text3);margin-bottom:12px">認証後はリフレッシュトークンのみ保存されます。パスワードは保存されません。</p>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:12px">認証後はAPIキーのみ保存されます。パスワードは保存されません。</p>
         <button class="btn-p" id="jqSave">接続テスト・保存</button>
-      </div>
-
-      <!-- トークン直接入力欄 -->
-      <div id="jqTokenSection" style="display:none">
-        <div class="ff">
-          <label class="fl">リフレッシュトークン</label>
-          <input class="fi" type="text" id="jqTokenInput" placeholder="eyJ..." autocomplete="off" style="font-family:'JetBrains Mono',monospace;font-size:12px">
-        </div>
-        <p style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:12px">
-          <a href="https://jpx-jquants.com" target="_blank" style="color:var(--accent2)">jpx-jquants.com</a> にログイン後、マイページからリフレッシュトークンをコピーして貼り付けてください。トークンはローカルにのみ保存されます。
-        </p>
-        <button class="btn-p" id="jqTokenSave">保存・接続テスト</button>
       </div>
 
       <p style="font-size:11px;color:var(--text3);margin-top:8px;margin-bottom:12px">取得価格は前日終値です（リアルタイムではありません）。</p>
@@ -1069,8 +1069,8 @@ function jqSwitchMethod(method) {
   document.getElementById('jqMethodPass').classList.toggle('on',  isPass);
   document.getElementById('jqMethodToken').classList.toggle('on', !isPass);
 }
-document.getElementById('jqMethodPass').addEventListener('click',  () => jqSwitchMethod('pass'));
 document.getElementById('jqMethodToken').addEventListener('click', () => jqSwitchMethod('token'));
+document.getElementById('jqMethodPass').addEventListener('click',  () => jqSwitchMethod('pass'));
 
 document.getElementById('jqRow').addEventListener('click', () => {
   const rt = localStorage.getItem(JQK);
@@ -1078,7 +1078,7 @@ document.getElementById('jqRow').addEventListener('click', () => {
   document.getElementById('jqEmail').value='';
   document.getElementById('jqPass').value='';
   document.getElementById('jqTokenInput').value='';
-  jqSwitchMethod('pass');
+  jqSwitchMethod('token');
   openModal('jqModal');
 });
 document.getElementById('jqClose').addEventListener('click',  () => closeModal('jqModal'));
