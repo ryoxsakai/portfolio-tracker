@@ -1088,21 +1088,22 @@ async function fetchJQuantsV2(codes, apiKey) {
     try {
       let name = code;
       try {
-        const mr = await jqFetch('/listed/info?code=' + encodeURIComponent(code), apiKey);
+        const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code), apiKey);
         if (mr.ok) {
           const md = await mr.json();
-          const item = (md.info || [])[0];
-          if (item) name = item.CompanyName || code;
+          const item = (md.data || [])[0];
+          if (item) name = item.CompanyName || item.company_name || code;
         }
       } catch(e) {}
 
       let price = null;
       for (let di = 0; di < 7; di++) {
-        const pr = await jqFetch('/prices/daily_quotes?code=' + encodeURIComponent(code) + '&date=' + jqDate(di), apiKey);
+        const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(code) + '&date=' + jqDate(di), apiKey);
         if (!pr.ok) continue;
         const pd = await pr.json();
-        if (pd.daily_quotes?.length) {
-          price = pd.daily_quotes[0].Close ?? null;
+        const items = pd.data || [];
+        if (items.length > 0) {
+          price = items[0].close ?? items[0].Close ?? items[0].AdjClose ?? null;
           if (price !== null) break;
         }
       }
@@ -1297,10 +1298,10 @@ document.getElementById('jqTokenSave').addEventListener('click', async function(
   this.disabled = true;
   jqSetStatus('接続テスト中…');
   try {
-    const testRes = await jqFetch('/prices/daily_quotes?code=7203&date=' + jqDate(1), token);
+    const testRes = await jqFetch('/equities/bars/daily?code=7203&date=' + jqDate(1), token);
     if (!testRes.ok) throw new Error('接続失敗（HTTP ' + testRes.status + '）— APIキーをご確認ください');
     const testData = await testRes.json();
-    if (!testData.daily_quotes) throw new Error('レスポンス形式が不正です — APIキーをご確認ください');
+    if (!Array.isArray(testData.data)) throw new Error('レスポンス形式が不正です — APIキーをご確認ください');
     localStorage.setItem(JQK, token);
     localStorage.setItem(JQ_MODE, 'apikey');
     jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
