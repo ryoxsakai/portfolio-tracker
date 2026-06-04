@@ -217,6 +217,51 @@ body{background:linear-gradient(160deg,#f0f0ff 0%,#e8eaf6 40%,#f5f0ff 100%);min-
 input[type=number]::-webkit-inner-spin-button{opacity:.5}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px}
+
+
+/* ── Reference-inspired glass mobile home ── */
+:root{
+  --accent:#6d73ff;
+  --accent2:#5b8def;
+  --pos:#20c883;
+  --pos-bg:rgba(32,200,131,.12);
+  --neg:#ff3f64;
+  --neg-bg:rgba(255,63,100,.12);
+  --text:#111f35;
+  --text2:#697a98;
+  --text3:#8ea0bc;
+  --card:rgba(255,255,255,.78);
+  --input-bg:rgba(255,255,255,.64);
+  --border:rgba(120,145,205,.16);
+  --shadow:0 18px 45px rgba(74,101,170,.13);
+  --nav-h:86px;
+  --r:22px;
+  --r-sm:18px;
+}
+html,body{font-family:'Inter','IBM Plex Sans JP',-apple-system,BlinkMacSystemFont,sans-serif;background:#f6f9ff;}
+body::before,body::after{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;}
+body::before{background:
+  radial-gradient(circle at 8% 4%, rgba(118,108,255,.52), transparent 34%),
+  radial-gradient(circle at 88% 1%, rgba(90,184,255,.42), transparent 32%),
+  radial-gradient(circle at 10% 30%, rgba(217,190,255,.45), transparent 30%),
+  linear-gradient(158deg,#eef5ff 0%,#f9fbff 56%,#f2f6ff 100%);}
+body::after{z-index:-1;background:
+  radial-gradient(ellipse at 35% 12%, rgba(255,255,255,.42), transparent 25%),
+  radial-gradient(ellipse at 78% 18%, rgba(255,255,255,.58), transparent 34%);backdrop-filter:blur(1px);}
+#app{max-width:430px;overflow:hidden;}
+.tab{padding-bottom:calc(var(--nav-h) + 22px);}
+.home-top{padding:18px 18px 2px;background:transparent;position:relative;}
+.status-bar{display:flex;align-items:center;justify-content:space-between;padding:0 9px 18px 9px;color:#05091b;font-weight:700;font-size:17px;letter-spacing:-.02em;}
+.status-icons{display:flex;align-items:center;gap:8px;font-size:14px;}
+.signal{display:flex;gap:3px;align-items:flex-end;height:18px}.signal i{display:block;width:4px;border-radius:4px;background:#05091b}.signal i:nth-child(1){height:7px}.signal i:nth-child(2){height:10px}.signal i:nth-child(3){height:14px}.signal i:nth-child(4){height:17px}
+.battery{background:#f8d13f;border-radius:5px;padding:0 5px;color:#07101f;font-weight:800;box-shadow:inset -2px 0 0 rgba(255,255,255,.45)}
+.home-search-row{display:flex;align-items:center;gap:10px;margin-bottom:48px;}
+.search-pill{height:36px;flex:1;border-radius:24px;background:rgba(255,255,255,.62);box-shadow:inset 0 1px 0 rgba(255,255,255,.86),0 12px 28px rgba(95,124,188,.12);display:flex;align-items:center;gap:10px;padding:0 15px;color:#7d8ead;font-size:13px;font-weight:500;backdrop-filter:blur(20px);}
+.search-pill svg{flex:none;color:#64779f}.bell-btn{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.68);display:grid;place-items:center;position:relative;box-shadow:0 12px 28px rgba(95,124,188,.12);color:#101b31}.bell-dot{position:absolute;right:9px;top:8px;width:7px;height:7px;border-radius:50%;background:#ff4266;border:1.5px solid #fff;}
+.total-lbl{font-size:12px;color:#7f8faf;font-weight:600;margin-left:13px;margin-bottom:12px;letter-spacing:.01em}.eye-btn{opacity:.6;font-size:13px}.total-val{font-size:32px;line-height:1;font-weight:800;letter-spacing:-.045em;color:#102039;margin-left:13px}.total-val::after{content:'円';font-size:16px;letter-spacing:0;margin-left:2px;font-weight:700}.total-change{font-size:14px;margin:14px 0 0 13px;font-weight:800}.total-change.pos::after{content:'⌃';font-size:16px;margin-left:5px}.total-change.neg::after{content:'⌄';font-size:16px;margin-left:5px}
+.chart-card{margin:0 31px 18px;padding:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;position:relative}.chart-toggle{position:absolute;right:0;top:-104px;z-index:3;margin:0}.cht-btn{display:none}.cht-btn.on{display:inline-flex;align-items:center;height:36px;padding:0 18px;border:0;border-radius:22px;background:rgba(255,255,255,.58);color:#17233a;font-size:13px;font-weight:800;box-shadow:0 12px 28px rgba(95,124,188,.10);backdrop-filter:blur(18px)}#btnPie{display:none!important}.chart-wrap{height:180px;margin-top:-10px}#lineCanvas{height:180px!important}.period-row{height:31px;padding:0 8px;margin:6px 0 5px;border-radius:18px;background:rgba(255,255,255,.74);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 12px 30px rgba(91,111,171,.09);align-items:center;gap:0}.per-btn{height:25px;min-width:56px;border-radius:14px;color:#435371;font-size:13px;font-weight:700}.per-btn.on{background:linear-gradient(135deg,#7d8bff,#6269f5);box-shadow:0 7px 14px rgba(98,105,245,.28);color:#fff}.refresh-st{font-size:10px;color:#8fa0bd;min-height:12px}
+.mini-grid{display:none}.market-topic{margin:14px 18px 28px;padding:13px 16px;border-radius:21px;background:rgba(255,255,255,.76);box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}.topic-icon{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(109,115,255,.12);color:#6d73ff}.topic-copy{flex:1;min-width:0}.topic-label{font-size:12px;color:#7c8dab;font-weight:700;margin-bottom:3px}.topic-text{font-size:13px;line-height:1.45;font-weight:700;color:#17233a}.topic-arrow{font-size:30px;color:#7e8fac;font-weight:300}.sec-hd{padding:3px 31px 12px}.sec-ttl{font-size:17px;font-weight:800;color:#0f1d33}.sec-lnk{font-size:13px;color:#6d73ff;font-weight:800}.sec-lnk::after{content:'›';font-size:22px;margin-left:5px;vertical-align:-2px}.holdings-head{display:grid;grid-template-columns:1fr 92px 78px;padding:0 31px 9px;color:#8fa0bd;font-size:12px;font-weight:700}.holdings-head div:nth-child(n+2){text-align:right}.slist{padding:0 18px;gap:7px}.srow{min-height:50px;border-radius:16px;border:0;background:rgba(255,255,255,.83);box-shadow:0 10px 24px rgba(74,101,170,.09);padding:10px 14px 10px 13px;display:grid;grid-template-columns:38px minmax(0,1fr)72px 80px;gap:9px}.sico{width:28px;height:28px;align-self:center;background:#fff!important;box-shadow:0 5px 12px rgba(42,63,110,.08);font-size:10px;color:#15233a;overflow:hidden}.sico.logo-red{color:#ef2a35}.sico.logo-black{background:#050505!important;color:#fff}.sico.logo-blue{background:#0b83d8!important;color:#fff}.sico.logo-green{background:#098146!important;color:#fff}.sinfo{align-self:center}.sname{font-size:13px;line-height:1.2;font-weight:800;color:#102039}.smeta{font-size:11px;color:#8ea0bc;font-weight:600;margin-top:3px}.spark{width:72px;height:34px;align-self:center}.sright{align-self:center;text-align:right}.sprice{font-size:15px;font-weight:800;color:#102039;letter-spacing:-.02em}.schange{font-size:12px;font-weight:800;margin-top:2px}.schange.pos{color:var(--pos)}.schange.neg{color:var(--neg)}.watch-scroll{display:flex;gap:8px;overflow-x:auto;padding:0 18px 10px 18px;scroll-snap-type:x mandatory}.watch-card{scroll-snap-align:start;flex:0 0 96px;height:114px;border-radius:15px;background:rgba(255,255,255,.76);box-shadow:0 10px 24px rgba(74,101,170,.09);padding:10px 10px 8px}.watch-name{font-size:12px;color:#697a98;font-weight:700;white-space:nowrap}.watch-val{font-size:14px;font-weight:800;margin-top:7px;color:#102039}.watch-pct{font-size:12px;font-weight:800;margin-top:8px}.watch-card .spark{width:78px;height:34px;margin-top:4px}.bnav{height:var(--nav-h);align-items:flex-start;padding:12px 12px 0;border-radius:28px 28px 0 0;border:1px solid rgba(140,155,195,.14);border-bottom:0;background:rgba(255,255,255,.78);box-shadow:0 -16px 45px rgba(70,93,150,.14);backdrop-filter:blur(24px)}.ni{gap:5px}.ni svg{width:24px;height:24px}.ni-lbl{font-size:11px;font-weight:700;color:#7e8fac}.ni.on .ni-lbl{color:#6470ff}.ni.fab-ni{top:-28px}.fab-circle{width:56px;height:56px;background:linear-gradient(135deg,#7d8bff,#6269f5);box-shadow:0 12px 26px rgba(98,105,245,.36);font-size:34px;font-weight:300}.ni.fab-ni .ni-lbl{top:16px}.tab-hd,.ptab-hd,.stab-hd{background:transparent}.hcard,.scard,.pleg-row{border:0;background:rgba(255,255,255,.82);box-shadow:0 10px 24px rgba(74,101,170,.08)}
+
 </style>
 </head>
 <body>
@@ -225,6 +270,14 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 <!-- ═══ HOME ═══ -->
 <div class="tab on" id="tab-home">
   <div class="home-top">
+    <div class="status-bar" aria-hidden="true">
+      <div>22:14 ☾</div>
+      <div class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span>5G+</span><span class="battery">46</span></div>
+    </div>
+    <div class="home-search-row">
+      <div class="search-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span>銘柄名・コード・キーワードで検索</span></div>
+      <button class="bell-btn" type="button" aria-label="通知"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="bell-dot"></span></button>
+    </div>
     <div class="total-lbl">総資産評価額 <span class="eye-btn" id="eyeBtn">👁</span></div>
     <div class="total-val" id="homeTotal">¥0</div>
     <div class="total-change" id="homeChange">—</div>
@@ -232,7 +285,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 
   <div class="card chart-card">
     <div class="chart-toggle">
-      <button class="cht-btn on" id="btnLine">折れ線グラフ</button>
+      <button class="cht-btn on" id="btnLine">今日の損益</button>
       <button class="cht-btn" id="btnPie">円グラフ</button>
     </div>
     <div class="chart-wrap">
@@ -256,11 +309,24 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
     <div class="mini-card"><div class="mini-lbl">損切ライン</div><div class="mini-val neg" id="mLoss">0</div></div>
   </div>
 
+  <div class="market-topic">
+    <div class="topic-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 16.81l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.94L12 2z"/></svg></div>
+    <div class="topic-copy"><div class="topic-label">マーケットトピック</div><div class="topic-text">米CPIの鈍化を受けてハイテク株が上昇。日経平均は続伸。</div></div>
+    <div class="topic-arrow">›</div>
+  </div>
+
   <div class="sec-hd">
     <div class="sec-ttl">保有銘柄</div>
-    <div class="sec-lnk" onclick="goTab('holdings')">すべて見る ›</div>
+    <div class="sec-lnk" onclick="goTab('holdings')">すべて見る</div>
   </div>
+  <div class="holdings-head"><div>銘柄名</div><div>現在値</div><div>前日比</div></div>
   <div class="slist" id="homeList"></div>
+
+  <div class="sec-hd" style="padding-top:24px">
+    <div class="sec-ttl">注目銘柄</div>
+    <div class="sec-lnk">すべて見る</div>
+  </div>
+  <div class="watch-scroll" id="watchList"></div>
   <div style="height:12px"></div>
 </div>
 
@@ -361,11 +427,11 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
   </div>
   <div class="ni" data-tab="holdings">
     <svg width="22" height="22" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="2" rx="1" fill="#9090aa"/><rect x="3" y="9" width="14" height="2" rx="1" fill="#9090aa"/><rect x="3" y="14" width="16" height="2" rx="1" fill="#9090aa"/><rect x="3" y="19" width="10" height="2" rx="1" fill="#9090aa"/></svg>
-    <div class="ni-lbl">保有銘柄</div>
+    <div class="ni-lbl">マーケット</div>
   </div>
   <div class="ni fab-ni" id="fabNi">
     <button class="fab-circle" id="fabBtn">＋</button>
-    <div class="ni-lbl">追加</div>
+    <div class="ni-lbl">取引</div>
   </div>
   <div class="ni" data-tab="portfolio">
     <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="#9090aa"/><path d="M14 2.46A10 10 0 0 1 22 10h-8V2.46z" fill="#c0c0d0"/></svg>
@@ -373,7 +439,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
   </div>
   <div class="ni" data-tab="settings">
     <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="#9090aa"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="#9090aa" stroke-width="0"/></svg>
-    <div class="ni-lbl">設定</div>
+    <div class="ni-lbl">メニュー</div>
   </div>
 </nav>
 
@@ -555,6 +621,8 @@ function p2(n) { return String(n).padStart(2,'0'); }
 
 // ── Format ──
 function fmtY(n) { return '¥' + Math.round(n).toLocaleString('ja-JP'); }
+function fmtHomeY(n) { return Math.round(n).toLocaleString('ja-JP'); }
+function fmtPrice(n) { return Number(n).toLocaleString('ja-JP', { maximumFractionDigits: n < 1000 ? 1 : 0 }) + '円'; }
 function fmtPL(n) { const s=n>=0?'+':'-'; return s+'¥'+Math.abs(Math.round(n)).toLocaleString('ja-JP'); }
 function fmtR(n)  { return (n>=0?'+':'')+n.toFixed(2)+'%'; }
 function esc(s)   { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -589,11 +657,11 @@ function renderHome() {
   const tv = totalValue(), tpl = totalPL(), tc = totalCost();
   const rate = tc > 0 ? tpl / tc * 100 : 0;
 
-  document.getElementById('homeTotal').textContent = hideTotals ? '¥••••••' : fmtY(tv);
+  document.getElementById('homeTotal').textContent = hideTotals ? '••••••' : fmtHomeY(tv);
   const ce = document.getElementById('homeChange');
   if (hideTotals) { ce.textContent = '——'; ce.className = 'total-change'; }
   else {
-    ce.textContent = fmtPL(tpl) + '円（' + fmtR(rate) + '）';
+    ce.textContent = fmtPL(tpl).replace('¥','') + '円（' + fmtR(rate) + '）';
     ce.className = 'total-change ' + (tpl >= 0 ? 'pos' : 'neg');
   }
 
@@ -602,27 +670,79 @@ function renderHome() {
   document.getElementById('mLoss').textContent   = stocks.filter(s => plRate(s) < cfg.lossLine).length;
 
   drawLineChart(currentPeriod);
+  renderWatchList();
 
   const el = document.getElementById('homeList');
   if (!stocks.length) {
     el.innerHTML = '<div class="empty"><div class="empty-ico">📊</div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
     return;
   }
-  const top = [...stocks].sort((a,b) => b.currentPrice*b.shares - a.currentPrice*a.shares).slice(0,5);
+  const top = [...stocks].sort((a,b) => b.currentPrice*b.shares - a.currentPrice*a.shares).slice(0,4);
   el.innerHTML = top.map(s => {
     const r = plRate(s);
+    const diff = s.currentPrice - s.buyPrice;
     return `<div class="srow" onclick="openEdit('${s.id}')">
-      <div class="sico" style="background:${stockColor(s.id)}">${esc((s.name||'?')[0])}</div>
+      <div class="sico ${logoClass(s)}">${stockLogo(s)}</div>
       <div class="sinfo">
-        <div class="sname">${esc(s.name)}</div>
-        <div class="smeta">${s.code?s.code+' · ':''}${esc(s.sector||'セクター未設定')}</div>
+        <div class="sname">${esc(stockTitle(s))}</div>
+        <div class="smeta">${esc(s.code || '東証PRM')}</div>
       </div>
+      ${sparkSvg(r >= 0 ? 'pos' : 'neg', s.id)}
       <div class="sright">
-        <div class="sprice">${s.currentPrice.toLocaleString('ja-JP')}円</div>
-        <div class="schange ${r>=0?'pos':'neg'}">${fmtR(r)}</div>
+        <div class="sprice">${fmtPrice(s.currentPrice)}</div>
+        <div class="schange ${r>=0?'pos':'neg'}">${fmtR(r)}<br>${diff>=0?'+':'-'}${Math.abs(diff).toLocaleString('ja-JP', {maximumFractionDigits:1})}円</div>
       </div>
     </div>`;
   }).join('');
+}
+
+function stockTitle(s) {
+  const code = s.code ? s.code + ' ' : '';
+  return code + (s.name || '名称未設定');
+}
+function logoClass(s) {
+  const text = (s.code + ' ' + s.name).toLowerCase();
+  if (/7203|toyota|トヨタ/.test(text)) return 'logo-red';
+  if (/6758|sony|ソニー/.test(text)) return 'logo-black';
+  if (/9432|ntt/.test(text)) return 'logo-blue';
+  if (/8316|三井住友|smbc/.test(text)) return 'logo-green';
+  return '';
+}
+function stockLogo(s) {
+  const text = (s.code + ' ' + s.name).toLowerCase();
+  if (/7203|toyota|トヨタ/.test(text)) return '◉';
+  if (/6758|sony|ソニー/.test(text)) return 'SONY';
+  if (/9432|ntt/.test(text)) return '↻';
+  if (/8316|三井住友|smbc/.test(text)) return 'SMBC';
+  return esc((s.name || '?').slice(0,2));
+}
+function sparkSvg(kind, seed) {
+  let h = 0; for (let i=0;i<seed.length;i++) h = (h*31 + seed.charCodeAt(i)) >>> 0;
+  const pts = Array.from({length:10}, (_,i) => {
+    const wobble = ((h >> (i % 8)) & 7) - 3;
+    const trend = kind === 'pos' ? 29 - i*2.25 : 8 + i*2.25;
+    return [i*8, Math.max(4, Math.min(31, trend + wobble))];
+  });
+  const d = pts.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');
+  const color = kind === 'pos' ? '#20c883' : '#ff3f64';
+  const fill = kind === 'pos' ? 'rgba(32,200,131,.16)' : 'rgba(255,63,100,.14)';
+  return `<svg class="spark" viewBox="0 0 72 36" aria-hidden="true"><path d="${d} L72 36 L0 36 Z" fill="${fill}"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function renderWatchList() {
+  const el = document.getElementById('watchList');
+  if (!el) return;
+  const items = stocks.length ? stocks.slice(0,4).map(s => ({name:s.name || s.code, value:s.currentPrice, rate:plRate(s), id:s.id})) : [
+    {name:'日経平均', value:38720.98, rate:1.68, id:'nikkei'},
+    {name:'TOPIX', value:2733.45, rate:1.22, id:'topix'},
+    {name:'米国ナスダック', value:17689.66, rate:2.35, id:'nasdaq'},
+    {name:'USD/JPY', value:157.34, rate:-0.42, id:'usdjpy'},
+  ];
+  el.innerHTML = items.map(x => `<div class="watch-card">
+    <div class="watch-name">${esc(x.name)}</div>
+    <div class="watch-val">${Number(x.value).toLocaleString('ja-JP', {maximumFractionDigits:2})}</div>
+    <div class="watch-pct ${x.rate>=0?'pos':'neg'}">${fmtR(x.rate)}</div>
+    ${sparkSvg(x.rate >= 0 ? 'pos' : 'neg', x.id)}
+  </div>`).join('');
 }
 
 // ── Render Holdings ──
@@ -751,7 +871,7 @@ function drawLineChart(period) {
   const canvas = document.getElementById('lineCanvas');
   if (!canvas) return;
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.parentElement.clientWidth || 340, H = 160;
+  const W = canvas.parentElement.clientWidth || 340, H = 180;
   canvas.width = W*dpr; canvas.height = H*dpr;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
   const ctx = canvas.getContext('2d');
@@ -769,14 +889,15 @@ function drawLineChart(period) {
   const vals = data.map(d=>d.v);
   const minV = Math.min(...vals)*0.997, maxV = Math.max(...vals)*1.003;
   const rng = maxV - minV || 1;
-  const pL=8,pR=8,pT=8,pB=22, pw=W-pL-pR, ph=H-pT-pB;
+  const pL=1,pR=44,pT=12,pB=28, pw=W-pL-pR, ph=H-pT-pB;
   const xp = i => pL + (i/(data.length-1))*pw;
   const yp = v => pT + (1-(v-minV)/rng)*ph;
 
   // gradient fill
   const grad = ctx.createLinearGradient(0,pT,0,pT+ph);
-  grad.addColorStop(0,'rgba(123,94,167,.22)');
-  grad.addColorStop(1,'rgba(123,94,167,.0)');
+  grad.addColorStop(0,'rgba(91,141,239,.20)');
+  grad.addColorStop(.55,'rgba(109,115,255,.10)');
+  grad.addColorStop(1,'rgba(91,141,239,.0)');
   ctx.beginPath();
   ctx.moveTo(xp(0),yp(vals[0]));
   for (let i=1;i<data.length;i++) {
@@ -788,6 +909,16 @@ function drawLineChart(period) {
   ctx.closePath();
   ctx.fillStyle=grad; ctx.fill();
 
+  // grid
+  ctx.strokeStyle='rgba(126,143,180,.14)'; ctx.lineWidth=1;
+  ctx.fillStyle='#7f8faf'; ctx.font='12px Inter,sans-serif'; ctx.textAlign='left';
+  for (let g=0; g<4; g++) {
+    const y = pT + (g/3)*ph;
+    ctx.beginPath(); ctx.moveTo(pL,y); ctx.lineTo(W-pR,y); ctx.stroke();
+    const val = maxV - (g/3)*rng;
+    ctx.fillText((val/1000000).toFixed(2)+'M', W-pR+16, y+4);
+  }
+
   // line
   ctx.beginPath();
   ctx.moveTo(xp(0),yp(vals[0]));
@@ -795,15 +926,16 @@ function drawLineChart(period) {
     const cpx=(xp(i-1)+xp(i))/2;
     ctx.bezierCurveTo(cpx,yp(vals[i-1]),cpx,yp(vals[i]),xp(i),yp(vals[i]));
   }
-  ctx.strokeStyle='#7B5EA7'; ctx.lineWidth=2; ctx.stroke();
+  ctx.strokeStyle='#5b8def'; ctx.lineWidth=2.7; ctx.stroke();
 
   // end dot
   const lx=xp(data.length-1), ly=yp(vals[vals.length-1]);
-  ctx.beginPath(); ctx.arc(lx,ly,5,0,Math.PI*2); ctx.fillStyle='#7B5EA7'; ctx.fill();
-  ctx.beginPath(); ctx.arc(lx,ly,3,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(lx,ly,6,0,Math.PI*2); ctx.fillStyle='rgba(109,115,255,.24)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fillStyle='#6d73ff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(lx,ly,2.5,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
 
   // date labels
-  ctx.fillStyle='#9090aa'; ctx.font='10px IBM Plex Sans JP,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#7f8faf'; ctx.font='12px Inter,sans-serif'; ctx.textAlign='center';
   const lblStep = Math.max(1, Math.floor(data.length/4));
   for (let i=0; i<data.length; i+=lblStep) {
     const pts=data[i].date.split('-'); ctx.fillText(pts[1]+'/'+pts[2], xp(i), H-5);
