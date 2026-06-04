@@ -1207,21 +1207,20 @@ async function fetchAndFill() {
     const c5 = jqCode(code);
     let name = code;
     try {
-      const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code), apiKey);
+      const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code) + '&date=' + jqDate(1), apiKey);
       if (mr.ok) {
         const md = await mr.json();
         const item = (md.data || [])[0];
         if (item) {
-          name = item.CompanyName || item.company_name || item.Name || item.name || code;
-          if (name === code) hint.textContent = 'マスター応答フィールド: ' + Object.keys(item).join(', ');
-        } else {
-          hint.textContent = 'マスター: データなし (HTTP ' + mr.status + ')';
+          name = item.CompanyName || item.company_name || item.Name || item.name;
+          if (!name) {
+            // フィールド名を直接表示してデバッグ
+            document.getElementById('fName').value = Object.keys(item).join(', ');
+            return;
+          }
         }
-      } else {
-        let b = {}; try { b = await mr.json(); } catch(e3) {}
-        hint.textContent = 'マスター HTTP ' + mr.status + ': ' + (b.message || JSON.stringify(b)).slice(0, 60);
       }
-    } catch(e2) { hint.textContent = 'マスター接続失敗: ' + e2.message; }
+    } catch(e2) {}
 
     const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
     if (!pr.ok) {
