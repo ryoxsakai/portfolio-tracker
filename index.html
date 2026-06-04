@@ -250,14 +250,32 @@ body::after{z-index:-1;background:
   radial-gradient(ellipse at 78% 18%, rgba(255,255,255,.58), transparent 34%);backdrop-filter:blur(1px);}
 #app{max-width:430px;overflow:hidden;}
 .tab{padding-bottom:calc(var(--nav-h) + 22px);}
-.home-top{padding:18px 18px 2px;background:transparent;position:relative;}
-.status-bar{display:flex;align-items:center;justify-content:space-between;padding:0 9px 18px 9px;color:#05091b;font-weight:700;font-size:17px;letter-spacing:-.02em;}
-.status-icons{display:flex;align-items:center;gap:8px;font-size:14px;}
-.signal{display:flex;gap:3px;align-items:flex-end;height:18px}.signal i{display:block;width:4px;border-radius:4px;background:#05091b}.signal i:nth-child(1){height:7px}.signal i:nth-child(2){height:10px}.signal i:nth-child(3){height:14px}.signal i:nth-child(4){height:17px}
-.battery{background:#f8d13f;border-radius:5px;padding:0 5px;color:#07101f;font-weight:800;box-shadow:inset -2px 0 0 rgba(255,255,255,.45)}
+.home-top{padding:48px 18px 2px;background:transparent;position:relative;}
 .home-search-row{display:flex;align-items:center;gap:10px;margin-bottom:48px;}
-.search-pill{height:36px;flex:1;border-radius:24px;background:rgba(255,255,255,.62);box-shadow:inset 0 1px 0 rgba(255,255,255,.86),0 12px 28px rgba(95,124,188,.12);display:flex;align-items:center;gap:10px;padding:0 15px;color:#7d8ead;font-size:13px;font-weight:500;backdrop-filter:blur(20px);}
-.search-pill svg{flex:none;color:#64779f}.bell-btn{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.68);display:grid;place-items:center;position:relative;box-shadow:0 12px 28px rgba(95,124,188,.12);color:#101b31}.bell-dot{position:absolute;right:9px;top:8px;width:7px;height:7px;border-radius:50%;background:#ff4266;border:1.5px solid #fff;}
+.search-wrap{position:relative;flex:1;}
+.search-pill{height:36px;border-radius:24px;background:rgba(255,255,255,.62);box-shadow:inset 0 1px 0 rgba(255,255,255,.86),0 12px 28px rgba(95,124,188,.12);display:flex;align-items:center;gap:10px;padding:0 15px;backdrop-filter:blur(20px);}
+.search-pill svg{flex:none;color:#64779f;flex-shrink:0;}
+.search-pill input{border:none;background:transparent;outline:none;flex:1;color:#17233a;font-size:13px;font-weight:500;font-family:inherit;min-width:0;}
+.search-pill input::placeholder{color:#7d8ead;}
+.search-drop{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border-radius:16px;box-shadow:0 12px 28px rgba(95,124,188,.18);z-index:50;display:none;overflow:hidden;max-height:280px;overflow-y:auto;}
+.search-drop.on{display:block;}
+.si-row{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;border-bottom:1px solid rgba(120,145,205,.10);}
+.si-row:last-child{border-bottom:none;}
+.si-row:active{background:rgba(109,115,255,.05);}
+.si-code{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;min-width:38px;}
+.si-name{font-size:13px;font-weight:700;color:#102039;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.si-rate{font-size:12px;font-weight:800;}
+.si-rate.pos{color:var(--pos)}.si-rate.neg{color:var(--neg)}
+.bell-btn{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.68);display:grid;place-items:center;position:relative;box-shadow:0 12px 28px rgba(95,124,188,.12);color:#101b31;cursor:pointer;flex-shrink:0;}
+.bell-dot{position:absolute;right:6px;top:5px;width:8px;height:8px;border-radius:50%;background:#ff4266;border:1.5px solid #fff;display:none;}
+.bell-dot.on{display:block;}
+.notif-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border);}
+.notif-item:last-child{border-bottom:none;}
+.notif-ico{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;flex-shrink:0;}
+.notif-body{flex:1;}
+.notif-ttl{font-size:13px;font-weight:700;color:#102039;}
+.notif-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.total-change{cursor:pointer;}
 .total-lbl{font-size:12px;color:#7f8faf;font-weight:600;margin-left:13px;margin-bottom:12px;letter-spacing:.01em}.eye-btn{opacity:.6;font-size:13px}.total-val{font-size:32px;line-height:1;font-weight:800;letter-spacing:-.045em;color:#102039;margin-left:13px}.total-val::after{content:'円';font-size:16px;letter-spacing:0;margin-left:2px;font-weight:700}.total-change{font-size:14px;margin:14px 0 0 13px;font-weight:800}.total-change.pos::after{content:'⌃';font-size:16px;margin-left:5px}.total-change.neg::after{content:'⌄';font-size:16px;margin-left:5px}
 .chart-card{margin:0 31px 18px;padding:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;position:relative}.chart-toggle{position:absolute;right:0;top:-104px;z-index:3;margin:0}.cht-btn{display:none}.cht-btn.on{display:inline-flex;align-items:center;height:36px;padding:0 18px;border:0;border-radius:22px;background:rgba(255,255,255,.58);color:#17233a;font-size:13px;font-weight:800;box-shadow:0 12px 28px rgba(95,124,188,.10);backdrop-filter:blur(18px)}#btnPie{display:none!important}.chart-wrap{height:180px;margin-top:-10px}#lineCanvas{height:180px!important}.period-row{height:31px;padding:0 8px;margin:6px 0 5px;border-radius:18px;background:rgba(255,255,255,.74);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 12px 30px rgba(91,111,171,.09);align-items:center;gap:0}.per-btn{height:25px;min-width:56px;border-radius:14px;color:#435371;font-size:13px;font-weight:700}.per-btn.on{background:linear-gradient(135deg,#7d8bff,#6269f5);box-shadow:0 7px 14px rgba(98,105,245,.28);color:#fff}.refresh-st{font-size:10px;color:#8fa0bd;min-height:12px}
 .mini-grid{display:none}.market-topic{margin:14px 18px 28px;padding:13px 16px;border-radius:21px;background:rgba(255,255,255,.76);box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}.topic-icon{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(109,115,255,.12);color:#6d73ff}.topic-copy{flex:1;min-width:0}.topic-label{font-size:12px;color:#7c8dab;font-weight:700;margin-bottom:3px}.topic-text{font-size:13px;line-height:1.45;font-weight:700;color:#17233a}.topic-arrow{font-size:30px;color:#7e8fac;font-weight:300}.sec-hd{padding:3px 31px 12px}.sec-ttl{font-size:17px;font-weight:800;color:#0f1d33}.sec-lnk{font-size:13px;color:#6d73ff;font-weight:800}.sec-lnk::after{content:'›';font-size:22px;margin-left:5px;vertical-align:-2px}.holdings-head{display:grid;grid-template-columns:1fr 92px 78px;padding:0 31px 9px;color:#8fa0bd;font-size:12px;font-weight:700}.holdings-head div:nth-child(n+2){text-align:right}.slist{padding:0 18px;gap:7px}.srow{min-height:50px;border-radius:16px;border:0;background:rgba(255,255,255,.83);box-shadow:0 10px 24px rgba(74,101,170,.09);padding:10px 14px 10px 13px;display:grid;grid-template-columns:38px minmax(0,1fr)72px 80px;gap:9px}.sico{width:28px;height:28px;align-self:center;background:#fff!important;box-shadow:0 5px 12px rgba(42,63,110,.08);font-size:10px;color:#15233a;overflow:hidden}.sico.logo-red{color:#ef2a35}.sico.logo-black{background:#050505!important;color:#fff}.sico.logo-blue{background:#0b83d8!important;color:#fff}.sico.logo-green{background:#098146!important;color:#fff}.sinfo{align-self:center}.sname{font-size:13px;line-height:1.2;font-weight:800;color:#102039}.smeta{font-size:11px;color:#8ea0bc;font-weight:600;margin-top:3px}.spark{width:72px;height:34px;align-self:center}.sright{align-self:center;text-align:right}.sprice{font-size:15px;font-weight:800;color:#102039;letter-spacing:-.02em}.schange{font-size:12px;font-weight:800;margin-top:2px}.schange.pos{color:var(--pos)}.schange.neg{color:var(--neg)}.watch-scroll{display:flex;gap:8px;overflow-x:auto;padding:0 18px 10px 18px;scroll-snap-type:x mandatory}.watch-card{scroll-snap-align:start;flex:0 0 96px;height:114px;border-radius:15px;background:rgba(255,255,255,.76);box-shadow:0 10px 24px rgba(74,101,170,.09);padding:10px 10px 8px}.watch-name{font-size:12px;color:#697a98;font-weight:700;white-space:nowrap}.watch-val{font-size:14px;font-weight:800;margin-top:7px;color:#102039}.watch-pct{font-size:12px;font-weight:800;margin-top:8px}.watch-card .spark{width:78px;height:34px;margin-top:4px}.bnav{height:var(--nav-h);align-items:flex-start;padding:12px 12px 0;border-radius:28px 28px 0 0;border:1px solid rgba(140,155,195,.14);border-bottom:0;background:rgba(255,255,255,.78);box-shadow:0 -16px 45px rgba(70,93,150,.14);backdrop-filter:blur(24px)}.ni{gap:5px}.ni svg{width:24px;height:24px}.ni-lbl{font-size:11px;font-weight:700;color:#7e8fac}.ni.on .ni-lbl{color:#6470ff}.ni.fab-ni{top:-28px}.fab-circle{width:56px;height:56px;background:linear-gradient(135deg,#7d8bff,#6269f5);box-shadow:0 12px 26px rgba(98,105,245,.36);font-size:34px;font-weight:300}.ni.fab-ni .ni-lbl{top:16px}.tab-hd,.ptab-hd,.stab-hd{background:transparent}.hcard,.scard,.pleg-row{border:0;background:rgba(255,255,255,.82);box-shadow:0 10px 24px rgba(74,101,170,.08)}
@@ -270,13 +288,12 @@ body::after{z-index:-1;background:
 <!-- ═══ HOME ═══ -->
 <div class="tab on" id="tab-home">
   <div class="home-top">
-    <div class="status-bar" aria-hidden="true">
-      <div>22:14 ☾</div>
-      <div class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span>5G+</span><span class="battery">46</span></div>
-    </div>
     <div class="home-search-row">
-      <div class="search-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span>銘柄名・コード・キーワードで検索</span></div>
-      <button class="bell-btn" type="button" aria-label="通知"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="bell-dot"></span></button>
+      <div class="search-wrap">
+        <div class="search-pill" id="searchPill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" id="searchInput" placeholder="銘柄名・コード・キーワードで検索" autocomplete="off" spellcheck="false"></div>
+        <div class="search-drop" id="searchDrop"></div>
+      </div>
+      <button class="bell-btn" id="bellBtn" type="button" aria-label="通知"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="bell-dot" id="bellDot"></span></button>
     </div>
     <div class="total-lbl">総資産評価額 <span class="eye-btn" id="eyeBtn">👁</span></div>
     <div class="total-val" id="homeTotal">¥0</div>
@@ -311,7 +328,7 @@ body::after{z-index:-1;background:
 
   <div class="market-topic">
     <div class="topic-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 16.81l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.94L12 2z"/></svg></div>
-    <div class="topic-copy"><div class="topic-label">マーケットトピック</div><div class="topic-text">米CPIの鈍化を受けてハイテク株が上昇。日経平均は続伸。</div></div>
+    <div class="topic-copy"><div class="topic-label" id="topicLabel">マーケットトピック</div><div class="topic-text" id="topicText">取得中…</div></div>
     <div class="topic-arrow">›</div>
   </div>
 
@@ -565,6 +582,15 @@ body::after{z-index:-1;background:
 
 <input type="file" id="importFile" accept=".json" style="display:none">
 
+<!-- ═══ NOTIFICATION MODAL ═══ -->
+<div class="overlay" id="notifModal">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="mhd"><div class="mttl">お知らせ</div><button class="mclose" id="notifClose">✕</button></div>
+    <div class="mbody" id="notifBody"></div>
+  </div>
+</div>
+
 </div><!-- #app -->
 <script>
 // ── Keys ──
@@ -581,6 +607,10 @@ let currentPeriod = '1m';
 let portfolioView = 'individual';
 let editingId     = null;
 let hideTotals    = false;
+let plMode        = 'today';
+let searchQuery   = '';
+let marketCache   = null;
+let marketCacheAt = 0;
 
 // ── Load / Save ──
 function loadJSON(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; } }
@@ -619,6 +649,126 @@ function snapshot() {
 }
 function dateStr(d) { return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
 function p2(n) { return String(n).padStart(2,'0'); }
+
+// ── Snapshot helpers ──
+function getYesterdaySnapshot() {
+  const today = dateStr(new Date());
+  return history.filter(h => h.date < today).sort((a,b) => b.date.localeCompare(a.date))[0] || null;
+}
+
+// ── Notifications ──
+function calcNotifications() {
+  const thisMonth = new Date().getMonth() + 1;
+  const alerts = [];
+  stocks.forEach(s => {
+    const r = plRate(s);
+    if (r >= cfg.profitLine) alerts.push({ type: 'profit', stock: s, rate: r });
+    else if (r <= cfg.lossLine) alerts.push({ type: 'loss', stock: s, rate: r });
+    if (s.dividendMonths && s.dividendMonths.includes(thisMonth) && s.annualDividend > 0)
+      alerts.push({ type: 'dividend', stock: s });
+  });
+  return alerts;
+}
+function updateBellBadge() {
+  const dot = document.getElementById('bellDot');
+  if (dot) dot.classList.toggle('on', calcNotifications().length > 0);
+}
+function openNotifications() {
+  const alerts = calcNotifications();
+  const thisMonth = new Date().getMonth() + 1;
+  const body = document.getElementById('notifBody');
+  if (!alerts.length) {
+    body.innerHTML = '<div class="empty"><div class="empty-ico">🔔</div><div class="empty-t">お知らせはありません</div><div class="empty-s">利確・損切ラインや配当月を設定してください</div></div>';
+  } else {
+    body.innerHTML = alerts.map(a => {
+      const s = a.stock;
+      if (a.type === 'profit') return `<div class="notif-item"><div class="notif-ico" style="background:var(--pos-bg)">📈</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 利確ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 上昇（ライン: +${cfg.profitLine}%）</div></div></div>`;
+      if (a.type === 'loss')   return `<div class="notif-item"><div class="notif-ico" style="background:var(--neg-bg)">📉</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 損切ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 下落（ライン: ${cfg.lossLine}%）</div></div></div>`;
+      return `<div class="notif-item"><div class="notif-ico" style="background:rgba(91,141,239,.12)">💰</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 今月配当</div><div class="notif-sub">${thisMonth}月は配当月です（予想: ${fmtY(s.annualDividend * s.shares)}）</div></div></div>`;
+    }).join('');
+  }
+  openModal('notifModal');
+}
+
+// ── Search ──
+function updateSearchDrop() {
+  const drop = document.getElementById('searchDrop');
+  if (!drop) return;
+  if (!searchQuery) { drop.classList.remove('on'); return; }
+  const q = searchQuery.toLowerCase();
+  const results = stocks.filter(s =>
+    s.code.toLowerCase().includes(q) ||
+    (s.name && s.name.toLowerCase().includes(q)) ||
+    (s.sector && s.sector.toLowerCase().includes(q))
+  );
+  if (!results.length) {
+    drop.innerHTML = '<div style="padding:14px 16px;color:var(--text3);font-size:13px;text-align:center">見つかりません</div>';
+    drop.classList.add('on'); return;
+  }
+  drop.innerHTML = results.slice(0,6).map(s => {
+    const r = plRate(s);
+    return `<div class="si-row" onclick="closeDrop();openEdit('${s.id}')">
+      <div class="si-code">${esc(s.code)}</div>
+      <div class="si-name">${esc(s.name||'—')}</div>
+      <div class="si-rate ${r>=0?'pos':'neg'}">${fmtR(r)}</div>
+    </div>`;
+  }).join('');
+  drop.classList.add('on');
+}
+function closeDrop() {
+  const drop = document.getElementById('searchDrop');
+  const input = document.getElementById('searchInput');
+  if (drop) drop.classList.remove('on');
+  if (input) input.value = '';
+  searchQuery = '';
+}
+
+// ── Market data ──
+async function fetchMarketData() {
+  const syms = ['^N225','USDJPY=X'];
+  const str = syms.map(encodeURIComponent).join(',');
+  for (const base of ['https://query1.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=','https://query2.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=']) {
+    try {
+      const r = await fetch(base+str); if (!r.ok) continue;
+      const d = await r.json();
+      const list = d?.quoteResponse?.result;
+      if (list && list.length) return list;
+    } catch(e) {}
+  }
+  return null;
+}
+async function updateMarketTopic() {
+  const now = Date.now();
+  if (marketCache && now - marketCacheAt < 5*60*1000) { renderMarketTopic(marketCache); return; }
+  const list = await fetchMarketData();
+  if (list) { marketCache = list; marketCacheAt = now; renderMarketTopic(list); }
+  else {
+    const t = document.getElementById('topicText');
+    if (t && t.textContent === '取得中…') t.textContent = 'データを取得できませんでした';
+  }
+}
+function renderMarketTopic(list) {
+  const text = document.getElementById('topicText');
+  const lbl  = document.getElementById('topicLabel');
+  if (!text) return;
+  const n225   = list.find(q => q.symbol==='^N225');
+  const usdjpy = list.find(q => q.symbol==='USDJPY=X');
+  const parts  = [];
+  if (n225 && n225.regularMarketPrice) {
+    const c = n225.regularMarketChangePercent || 0;
+    parts.push('日経 '+n225.regularMarketPrice.toLocaleString('ja-JP',{maximumFractionDigits:0})+'円 '+(c>=0?'▲':'▼')+Math.abs(c).toFixed(2)+'%');
+  }
+  if (usdjpy && usdjpy.regularMarketPrice) {
+    const c = usdjpy.regularMarketChangePercent || 0;
+    parts.push('USD/JPY '+usdjpy.regularMarketPrice.toFixed(2)+' '+(c>=0?'▲':'▼')+Math.abs(c).toFixed(2)+'%');
+  }
+  if (parts.length) {
+    text.textContent = parts.join('　');
+    if (lbl) lbl.textContent = 'マーケット（リアルタイム）';
+  } else {
+    text.textContent = 'データを取得できませんでした';
+  }
+}
 
 // ── Format ──
 function fmtY(n) { return '¥' + Math.round(n).toLocaleString('ja-JP'); }
@@ -667,9 +817,18 @@ function renderHome() {
   const ce = document.getElementById('homeChange');
   if (hideTotals) { ce.textContent = '——'; ce.className = 'total-change'; }
   else {
-    ce.textContent = fmtPL(tpl).replace('¥','') + '円（' + fmtR(rate) + '）';
-    ce.className = 'total-change ' + (tpl >= 0 ? 'pos' : 'neg');
+    const ys = getYesterdaySnapshot();
+    if (plMode === 'today' && ys) {
+      const tdPL = tv - ys.v;
+      const tdPct = ys.v > 0 ? tdPL / ys.v * 100 : 0;
+      ce.textContent = '今日 ' + (tdPL >= 0 ? '+' : '') + Math.round(tdPL).toLocaleString('ja-JP') + '円（' + fmtR(tdPct) + '）';
+      ce.className = 'total-change ' + (tdPL >= 0 ? 'pos' : 'neg');
+    } else {
+      ce.textContent = fmtPL(tpl).replace('¥','') + '円（' + fmtR(rate) + '）';
+      ce.className = 'total-change ' + (tpl >= 0 ? 'pos' : 'neg');
+    }
   }
+  updateBellBadge();
 
   document.getElementById('mCount').textContent  = stocks.length;
   document.getElementById('mProfit').textContent = stocks.filter(s => plRate(s) > cfg.profitLine).length;
@@ -677,6 +836,7 @@ function renderHome() {
 
   drawLineChart(currentPeriod);
   renderWatchList();
+  updateMarketTopic();
 
   const el = document.getElementById('homeList');
   if (!stocks.length) {
@@ -1266,14 +1426,11 @@ async function fetchAndFill(prefix) {
 document.querySelectorAll('.ni[data-tab]').forEach(n => n.addEventListener('click', () => goTab(n.dataset.tab)));
 document.getElementById('fabBtn').addEventListener('click', openAdd);
 
-// ── Events: chart toggle ──
+// ── Events: chart toggle / P&L mode ──
 document.getElementById('btnLine').addEventListener('click', () => {
-  document.getElementById('btnLine').classList.add('on');
-  document.getElementById('btnPie').classList.remove('on');
-  document.getElementById('lineCanvas').style.display='block';
-  document.getElementById('homePie').style.display='none';
-  document.getElementById('periodRow').style.display='flex';
-  drawLineChart(currentPeriod);
+  plMode = plMode === 'today' ? 'total' : 'today';
+  document.getElementById('btnLine').textContent = plMode === 'today' ? '今日の損益' : '累計損益';
+  renderHome();
 });
 document.getElementById('btnPie').addEventListener('click', () => {
   document.getElementById('btnPie').classList.add('on');
@@ -1479,6 +1636,34 @@ document.getElementById('clearRow').addEventListener('click', () => {
 document.getElementById('eyeBtn').addEventListener('click', () => {
   hideTotals = !hideTotals; renderHome();
 });
+
+// ── Events: P&L mode toggle (tap homeChange to switch today↔cumulative) ──
+document.getElementById('homeChange').addEventListener('click', () => {
+  if (!hideTotals) {
+    plMode = plMode === 'today' ? 'total' : 'today';
+    document.getElementById('btnLine').textContent = plMode === 'today' ? '今日の損益' : '累計損益';
+    renderHome();
+  }
+});
+
+// ── Events: search ──
+document.getElementById('searchInput').addEventListener('input', function() {
+  searchQuery = this.value.trim();
+  updateSearchDrop();
+});
+document.getElementById('searchInput').addEventListener('focus', () => {
+  if (searchQuery) updateSearchDrop();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#searchPill') && !e.target.closest('#searchDrop')) {
+    const drop = document.getElementById('searchDrop');
+    if (drop) drop.classList.remove('on');
+  }
+});
+
+// ── Events: notifications ──
+document.getElementById('bellBtn').addEventListener('click', openNotifications);
+document.getElementById('notifClose').addEventListener('click', () => closeModal('notifModal'));
 
 // ── init: restore tab & modal ──
 (function restoreState() {
