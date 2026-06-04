@@ -1036,20 +1036,16 @@ async function jqIdToken() {
   const key = localStorage.getItem(JQK);
   if (!key) throw new Error('jq_not_configured');
   const mode = localStorage.getItem(JQ_MODE) || 'refresh';
-  let res;
+
   if (mode === 'apikey') {
-    // ダッシュボードのAPI Key → auth_user に apikey として送信
-    res = await fetch('https://api.jquants.com/v1/token/auth_user', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({apikey: key})
-    });
-  } else {
-    // メール認証で取得したリフレッシュトークン → auth_refresh で交換
-    res = await fetch('https://api.jquants.com/v1/token/auth_refresh?refreshToken='+encodeURIComponent(key), {method:'POST'});
+    // ダッシュボードのAPI Key → そのままBearer tokenとして使用（交換不要）
+    return key;
   }
+
+  // メール認証で取得したリフレッシュトークン → auth_refresh で交換
+  const res = await fetch('https://api.jquants.com/v1/token/auth_refresh?refreshToken='+encodeURIComponent(key), {method:'POST'});
   if (!res.ok) {
-    if (res.status === 401) { localStorage.removeItem(JQK); throw new Error('APIキーまたはトークンが無効です（再設定してください）'); }
+    if (res.status === 401) { localStorage.removeItem(JQK); throw new Error('トークンの期限が切れました（再設定してください）'); }
     throw new Error('認証エラー（HTTP '+res.status+'）');
   }
   const d = await res.json();
@@ -1255,16 +1251,18 @@ document.getElementById('jqTokenSave').addEventListener('click', async function(
   if (!token) { alert('APIキーを入力してください'); return; }
   this.disabled = true;
   jqSetStatus('接続テスト中…');
-  localStorage.setItem(JQK, token);
-  localStorage.setItem(JQ_MODE, 'apikey');
   try {
-    await jqIdToken();
+    // APIキーをBearer tokenとして実際のAPIに問い合わせてテスト
+    const testRes = await fetch('https://api.jquants.com/v1/listed/info?code=7203', {
+      headers: {'Authorization': 'Bearer ' + token}
+    });
+    if (!testRes.ok) throw new Error('接続失敗（HTTP ' + testRes.status + '）\nAPIキーをご確認ください');
+    localStorage.setItem(JQK, token);
+    localStorage.setItem(JQ_MODE, 'apikey');
     jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
     document.getElementById('jqTokenInput').value='';
     renderSettings();
   } catch(e) {
-    localStorage.removeItem(JQK);
-    localStorage.removeItem(JQ_MODE);
     jqSetStatus('✗ ' + e.message, 'err');
   }
   this.disabled = false;
