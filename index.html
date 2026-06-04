@@ -1304,18 +1304,34 @@ document.getElementById('jqTokenSave').addEventListener('click', async function(
   jqSetStatus('接続テスト中…');
   try {
     const testRes = await jqFetch('/equities/bars/daily?code=72030&from=' + jqDate(5) + '&to=' + jqDate(0), token);
+    let savedOk = false;
     if (!testRes.ok) {
-      let detail = 'HTTP ' + testRes.status;
-      try { const b = await testRes.json(); detail += ' ' + (b.message || b.error || JSON.stringify(b)).slice(0, 80); } catch(e2) {}
-      throw new Error('接続失敗（' + detail + '）');
+      let body = {};
+      try { body = await testRes.json(); } catch(e2) {}
+      const msg = body.message || body.error || '';
+      // サブスクリプション期間外の場合はキーは有効→保存して警告表示
+      if (testRes.status === 400 && msg.includes('subscription covers')) {
+        const range = msg.match(/(\d{4}-\d{2}-\d{2}) ~ (\d{4}-\d{2}-\d{2})/);
+        const until = range ? range[2] : '不明';
+        localStorage.setItem(JQK, token);
+        localStorage.setItem(JQ_MODE, 'apikey');
+        jqSetStatus('⚠ APIキーを保存しました。サブスクリプションの期限（' + until + '）が切れています。jpx-jquants.comでプランを更新してください', 'warn');
+        document.getElementById('jqTokenInput').value = '';
+        renderSettings();
+        savedOk = true;
+      } else {
+        throw new Error('接続失敗（HTTP ' + testRes.status + ' ' + msg.slice(0, 60) + '）');
+      }
     }
-    const testData = await testRes.json();
-    if (!Array.isArray(testData.data)) throw new Error('レスポンス形式が不正です（' + JSON.stringify(testData).slice(0,80) + '）');
-    localStorage.setItem(JQK, token);
-    localStorage.setItem(JQ_MODE, 'apikey');
-    jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
-    document.getElementById('jqTokenInput').value='';
-    renderSettings();
+    if (!savedOk) {
+      const testData = await testRes.json();
+      if (!Array.isArray(testData.data)) throw new Error('レスポンス形式が不正です（' + JSON.stringify(testData).slice(0, 60) + '）');
+      localStorage.setItem(JQK, token);
+      localStorage.setItem(JQ_MODE, 'apikey');
+      jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
+      document.getElementById('jqTokenInput').value = '';
+      renderSettings();
+    }
   } catch(e) {
     jqSetStatus('✗ ' + e.message, 'err');
   }
