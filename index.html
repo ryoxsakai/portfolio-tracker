@@ -482,7 +482,7 @@ body::after{z-index:-1;background:
     <div class="mhd"><div class="mttl" id="editTitle">銘柄を編集</div><button class="mclose" id="editClose">✕</button></div>
     <div class="mbody">
       <div class="frow">
-        <div class="ff"><label class="fl">銘柄コード</label><input class="fi" type="text" id="eFCode" maxlength="6" autocomplete="off"></div>
+        <div class="ff"><label class="fl">銘柄コード</label><input class="fi" type="text" id="eFCode" maxlength="6" autocomplete="off"><div class="hint" id="editFetchHint"></div></div>
         <div class="ff"><label class="fl">銘柄名</label><input class="fi" type="text" id="eFName"></div>
       </div>
       <div class="frow">
@@ -984,7 +984,13 @@ function openEdit(id) {
   document.getElementById('eFCyc').value    = s.cyclicality||'';
   document.getElementById('eFDiv').value    = s.annualDividend||'';
   document.getElementById('eFDivM').value   = (s.dividendMonths||[]).join(' ');
+  document.getElementById('editFetchHint').textContent = '';
+  document.getElementById('editFetchHint').className = 'hint';
   openModal('editModal');
+  // 名前がコードのままなら自動で再取得
+  if (s.code && (!s.name || s.name === s.code)) {
+    setTimeout(() => fetchAndFill('eF'), 300);
+  }
 }
 
 // ── Collect form data ──
@@ -1176,21 +1182,31 @@ async function refreshAllPrices(btnEl) {
   if (btnEl) { btnEl.disabled=false; btnEl.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>'; }
 }
 
-// ── Auto-fetch on code input ──
-async function fetchAndFill() {
-  const code = document.getElementById('fCode').value.trim().toUpperCase();
+// ── Auto-fetch on code input (prefix: 'f' for add modal, 'eF' for edit modal) ──
+async function fetchAndFill(prefix) {
+  prefix = prefix || 'f';
+  const hintId = prefix === 'eF' ? 'editFetchHint' : 'fetchHint';
+  const codeEl = document.getElementById(prefix + 'Code');
+  const nameEl = document.getElementById(prefix + 'Name');
+  const curEl  = document.getElementById(prefix + 'Cur');
+  if (!codeEl) return;
+  const code = codeEl.value.trim().toUpperCase();
   if (!code) return;
-  document.getElementById('fCode').value = code;
-  const hint = document.getElementById('fetchHint');
+  codeEl.value = code;
+  const hint = document.getElementById(hintId);
   hint.textContent = '取得中…'; hint.className = 'hint';
+
+  // 名前の更新条件: 空 OR コードと同じ（未取得のまま）
+  const shouldUpdateName = () => !nameEl.value || nameEl.value.toUpperCase() === code;
+  const shouldUpdatePrice = () => !curEl.value || curEl.value === '0';
 
   // Step 1: Yahoo Finance
   try {
     const yMap = await fetchYahoo([code]);
     const q = yMap[code];
     if (q && q.price) {
-      if (!document.getElementById('fName').value) document.getElementById('fName').value = q.name || code;
-      if (!document.getElementById('fCur').value) document.getElementById('fCur').value = q.price;
+      if (shouldUpdateName()) nameEl.value = q.name || code;
+      if (shouldUpdatePrice()) curEl.value = q.price;
       hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
       setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2000);
       return;
@@ -1205,20 +1221,20 @@ async function fetchAndFill() {
   }
   try {
     const c5 = jqCode(code);
-    let name = code;
+    let name = null;
     try {
       const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code) + '&date=' + jqDate(1), apiKey);
       if (mr.ok) {
         const md = await mr.json();
         const item = (md.data || [])[0];
-        if (item) name = item.CoName || item.CompanyName || item.company_name || code;
+        if (item) name = item.CoName || item.CompanyName || item.company_name || null;
       }
     } catch(e2) {}
 
     const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
     if (!pr.ok) {
       let msg = 'HTTP ' + pr.status;
-      try { const b = await pr.json(); msg += ': ' + (b.message || JSON.stringify(b)).slice(0, 70); } catch(e2) {}
+      try { const b = await pr.json(); msg += ': ' + (b.message || JSON.stringify(b)).slice(0, 60); } catch(e2) {}
       hint.textContent = 'J-Quants エラー: ' + msg; hint.className = 'hint err';
       return;
     }
@@ -1237,8 +1253,8 @@ async function fetchAndFill() {
       hint.textContent = 'J-Quants: フィールド不明 (' + Object.keys(latest).join(', ') + ')'; hint.className = 'hint err';
       return;
     }
-    if (!document.getElementById('fName').value) document.getElementById('fName').value = name;
-    if (!document.getElementById('fCur').value) document.getElementById('fCur').value = price;
+    if (shouldUpdateName() && name) nameEl.value = name;
+    if (shouldUpdatePrice()) curEl.value = price;
     hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
     setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2000);
   } catch(e) {
@@ -1294,8 +1310,10 @@ document.addEventListener('click', e => {
 });
 
 // ── Events: add modal ──
-document.getElementById('fCode').addEventListener('blur', fetchAndFill);
-document.getElementById('fCode').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();fetchAndFill().then(()=>document.getElementById('fBuy').focus());} });
+document.getElementById('fCode').addEventListener('blur', () => fetchAndFill('f'));
+document.getElementById('fCode').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();fetchAndFill('f').then(()=>document.getElementById('fBuy').focus());} });
+document.getElementById('eFCode').addEventListener('blur', () => fetchAndFill('eF'));
+document.getElementById('eFCode').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();fetchAndFill('eF');} });
 document.getElementById('addClose').addEventListener('click', () => closeModal('addModal'));
 document.getElementById('addCancel').addEventListener('click', () => closeModal('addModal'));
 document.getElementById('addConfirm').addEventListener('click', () => {
