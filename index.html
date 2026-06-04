@@ -1037,6 +1037,10 @@ function jqDate(daysAgo) {
   const d = new Date(); d.setDate(d.getDate()-daysAgo);
   return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate());
 }
+// J-Quants V2は5桁コード（末尾0）が標準。4桁数字コードは0を付加
+function jqCode(code) {
+  return /^\d{4}$/.test(code) ? code + '0' : code;
+}
 
 // ── V1: メール/パスワード認証（旧ユーザー向け） ──
 async function jqLogin(email, pass) {
@@ -1086,9 +1090,10 @@ async function fetchJQuantsV2(codes, apiKey) {
   const map = {};
   for (const code of codes) {
     try {
+      const c5 = jqCode(code);
       let name = code;
       try {
-        const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code), apiKey);
+        const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(c5), apiKey);
         if (mr.ok) {
           const md = await mr.json();
           const item = (md.data || [])[0];
@@ -1096,15 +1101,15 @@ async function fetchJQuantsV2(codes, apiKey) {
         }
       } catch(e) {}
 
+      // from/toで直近7日分を取得し最新終値を使う
+      const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
       let price = null;
-      for (let di = 0; di < 7; di++) {
-        const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(code) + '&date=' + jqDate(di), apiKey);
-        if (!pr.ok) continue;
+      if (pr.ok) {
         const pd = await pr.json();
-        const items = pd.data || [];
+        const items = (pd.data || []).filter(x => x.close != null || x.Close != null);
         if (items.length > 0) {
-          price = items[0].close ?? items[0].Close ?? items[0].AdjClose ?? null;
-          if (price !== null) break;
+          const latest = items[items.length - 1];
+          price = latest.close ?? latest.Close ?? null;
         }
       }
       if (price !== null) map[code.toUpperCase()] = { name, price };
@@ -1298,10 +1303,14 @@ document.getElementById('jqTokenSave').addEventListener('click', async function(
   this.disabled = true;
   jqSetStatus('接続テスト中…');
   try {
-    const testRes = await jqFetch('/equities/bars/daily?code=7203&date=' + jqDate(1), token);
-    if (!testRes.ok) throw new Error('接続失敗（HTTP ' + testRes.status + '）— APIキーをご確認ください');
+    const testRes = await jqFetch('/equities/bars/daily?code=72030&from=' + jqDate(5) + '&to=' + jqDate(0), token);
+    if (!testRes.ok) {
+      let detail = 'HTTP ' + testRes.status;
+      try { const b = await testRes.json(); detail += ' ' + (b.message || b.error || JSON.stringify(b)).slice(0, 80); } catch(e2) {}
+      throw new Error('接続失敗（' + detail + '）');
+    }
     const testData = await testRes.json();
-    if (!Array.isArray(testData.data)) throw new Error('レスポンス形式が不正です — APIキーをご確認ください');
+    if (!Array.isArray(testData.data)) throw new Error('レスポンス形式が不正です（' + JSON.stringify(testData).slice(0,80) + '）');
     localStorage.setItem(JQK, token);
     localStorage.setItem(JQ_MODE, 'apikey');
     jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
