@@ -502,7 +502,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
 </div><!-- #app -->
 <script>
 // ── Keys ──
-const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token';
+const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token', JQ_MODE = 'jq_auth_mode';
 const COLORS = ['#7B5EA7','#5B8DEF','#22C55E','#F59E0B','#EF4444','#06B6D4','#EC4899','#10B981','#8B5CF6','#F97316','#14B8A6','#6366F1','#84CC16','#E879F9','#FB923C'];
 
 // ── State ──
@@ -707,7 +707,8 @@ function renderPortLegend(entries, total) {
 // ── Render Settings ──
 function renderSettings() {
   const rt = localStorage.getItem(JQK);
-  document.getElementById('jqRowDesc').textContent   = rt ? '✓ 接続済み' : '未設定 — タップして設定';
+  const jqMode = localStorage.getItem(JQ_MODE);
+  document.getElementById('jqRowDesc').textContent = rt ? ('✓ 接続済み（' + (jqMode==='apikey'?'APIキー':'メール認証') + '）') : '未設定 — タップして設定';
   document.getElementById('aProfitDesc').textContent = '+' + cfg.profitLine + '%';
   document.getElementById('aLossDesc').textContent   = cfg.lossLine + '%';
 }
@@ -896,15 +897,31 @@ async function jqLogin(email, pass) {
   const d = await res.json();
   if (!d.refreshToken) throw new Error('認証レスポンスが不正です');
   localStorage.setItem(JQK, d.refreshToken);
+  localStorage.setItem(JQ_MODE, 'refresh');
   return d.refreshToken;
 }
 async function jqIdToken() {
-  const rt = localStorage.getItem(JQK);
-  if (!rt) throw new Error('jq_not_configured');
-  const res = await fetch('https://api.jquants.com/v1/token/auth_refresh?refreshToken='+encodeURIComponent(rt), {method:'POST'});
-  if (!res.ok) { if(res.status===401){localStorage.removeItem(JQK);throw new Error('jq_expired');} throw new Error('jq_auth_error'); }
+  const key = localStorage.getItem(JQK);
+  if (!key) throw new Error('jq_not_configured');
+  const mode = localStorage.getItem(JQ_MODE) || 'refresh';
+  let res;
+  if (mode === 'apikey') {
+    // ダッシュボードのAPI Key → auth_user に apikey として送信
+    res = await fetch('https://api.jquants.com/v1/token/auth_user', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({apikey: key})
+    });
+  } else {
+    // メール認証で取得したリフレッシュトークン → auth_refresh で交換
+    res = await fetch('https://api.jquants.com/v1/token/auth_refresh?refreshToken='+encodeURIComponent(key), {method:'POST'});
+  }
+  if (!res.ok) {
+    if (res.status === 401) { localStorage.removeItem(JQK); throw new Error('APIキーまたはトークンが無効です（再設定してください）'); }
+    throw new Error('認証エラー（HTTP '+res.status+'）');
+  }
   const d = await res.json();
-  if (!d.idToken) throw new Error('jq_no_token');
+  if (!d.idToken) throw new Error('IDトークンを取得できませんでした');
   return d.idToken;
 }
 function jqDate(daysAgo) {
@@ -1100,21 +1117,23 @@ document.getElementById('jqSave').addEventListener('click', async function() {
   this.disabled = false;
 });
 
-// リフレッシュトークン直接入力
+// APIキー直接入力
 document.getElementById('jqTokenSave').addEventListener('click', async function() {
   const token = document.getElementById('jqTokenInput').value.trim();
-  if (!token) { alert('リフレッシュトークンを入力してください'); return; }
+  if (!token) { alert('APIキーを入力してください'); return; }
   this.disabled = true;
   jqSetStatus('接続テスト中…');
   localStorage.setItem(JQK, token);
+  localStorage.setItem(JQ_MODE, 'apikey');
   try {
     await jqIdToken();
-    jqSetStatus('✓ 接続成功！トークンを保存しました', 'ok');
+    jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
     document.getElementById('jqTokenInput').value='';
     renderSettings();
   } catch(e) {
     localStorage.removeItem(JQK);
-    jqSetStatus('✗ トークンが無効です: '+e.message, 'err');
+    localStorage.removeItem(JQ_MODE);
+    jqSetStatus('✗ ' + e.message, 'err');
   }
   this.disabled = false;
 });
