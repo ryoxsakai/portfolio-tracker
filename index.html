@@ -568,7 +568,8 @@ body::after{z-index:-1;background:
 </div><!-- #app -->
 <script>
 // ── Keys ──
-const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token', JQ_MODE = 'jq_auth_mode';
+const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token', JQ_MODE = 'jq_auth_mode',
+      TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1';
 const COLORS = ['#7B5EA7','#5B8DEF','#22C55E','#F59E0B','#EF4444','#06B6D4','#EC4899','#10B981','#8B5CF6','#F97316','#14B8A6','#6366F1','#84CC16','#E879F9','#FB923C'];
 
 // ── State ──
@@ -630,6 +631,7 @@ function esc(s)   { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').
 // ── Tab switching ──
 function goTab(tab) {
   currentTab = tab;
+  localStorage.setItem(TAB_KEY, tab);
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   document.querySelectorAll('.ni[data-tab]').forEach(n => n.classList.remove('on'));
   document.getElementById('tab-'+tab).classList.add('on');
@@ -649,8 +651,12 @@ function openModal(id) {
   const el = document.getElementById(id);
   el.classList.add('on');
   el.addEventListener('click', e => { if (e.target === el) closeModal(id); });
+  if (['addModal','jqModal','alertModal'].includes(id)) localStorage.setItem(MODAL_KEY, id);
 }
-function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('on');
+  localStorage.removeItem(MODAL_KEY);
+}
 
 // ── Render Home ──
 function renderHome() {
@@ -1219,7 +1225,7 @@ async function fetchAndFill() {
     }
     const latest = items[items.length - 1];
     let price = null;
-    for (const f of ['close','Close','AdjustedClose','adjusted_close','adjClose','adj_close','ClosePrice','close_price']) {
+    for (const f of ['AdjC','C','close','Close','AdjustedClose','adjusted_close','adjClose','adj_close']) {
       if (latest[f] != null && latest[f] !== 0) { price = latest[f]; break; }
     }
     if (price === null) {
@@ -1451,10 +1457,31 @@ document.getElementById('eyeBtn').addEventListener('click', () => {
   hideTotals = !hideTotals; renderHome();
 });
 
-// ── init ──
-renderHome();
-if (stocks.some(s=>s.code)) refreshAllPrices(null);
-setInterval(() => { if(stocks.some(s=>s.code)) refreshAllPrices(null); }, 5*60*1000);
+// ── init: restore tab & modal ──
+(function restoreState() {
+  const tab = localStorage.getItem(TAB_KEY) || 'home';
+  goTab(tab);
+  if (stocks.some(s => s.code)) refreshAllPrices(null);
+  setInterval(() => { if (stocks.some(s => s.code)) refreshAllPrices(null); }, 5 * 60 * 1000);
+
+  const modal = localStorage.getItem(MODAL_KEY);
+  if (!modal) return;
+  if (modal === 'addModal') {
+    openAdd();
+  } else if (modal === 'jqModal') {
+    const rt = localStorage.getItem(JQK);
+    const mode = localStorage.getItem(JQ_MODE);
+    jqSetStatus(rt ? ('✓ 接続済み（' + (mode === 'apikey' ? 'APIキー' : 'メール認証') + '）') : '未設定', rt ? 'ok' : '');
+    document.getElementById('jqEmail').value = '';
+    document.getElementById('jqPass').value = '';
+    document.getElementById('jqTokenInput').value = '';
+    openModal('jqModal');
+  } else if (modal === 'alertModal') {
+    document.getElementById('aProft').value = cfg.profitLine;
+    document.getElementById('aLoss').value = cfg.lossLine;
+    openModal('alertModal');
+  }
+})();
 
 // Handle home refresh button click
 document.getElementById('hRefreshBtn').addEventListener('click', function() {
