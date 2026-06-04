@@ -1101,16 +1101,24 @@ async function fetchJQuantsV2(codes, apiKey) {
         }
       } catch(e) {}
 
-      // from/toで直近7日分を取得し最新終値を使う
       const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
       let price = null;
       if (pr.ok) {
         const pd = await pr.json();
-        const items = (pd.data || []).filter(x => x.close != null || x.Close != null);
+        const items = pd.data || [];
         if (items.length > 0) {
           const latest = items[items.length - 1];
-          price = latest.close ?? latest.Close ?? null;
+          // J-Quants V2のクローズ価格フィールド名候補（全て試みる）
+          const closeFields = ['close','Close','AdjustedClose','adjusted_close','adjClose','adj_close','ClosePrice','close_price'];
+          for (const f of closeFields) {
+            if (latest[f] != null && latest[f] !== 0) { price = latest[f]; break; }
+          }
+          if (price === null) console.warn('JQ v2: unknown fields', Object.keys(latest));
         }
+      } else {
+        let errBody = '';
+        try { errBody = JSON.stringify(await pr.json()); } catch(e2) {}
+        console.warn('JQ v2 HTTP ' + pr.status, errBody);
       }
       if (price !== null) map[code.toUpperCase()] = { name, price };
     } catch(e) { console.error('JQ v2', code, e.message); }
@@ -1176,7 +1184,7 @@ async function fetchAndFill() {
     if (!document.getElementById('fCur').value && q.price) document.getElementById('fCur').value = q.price;
     hint.textContent='✓ 取得完了'; hint.className='hint ok';
     setTimeout(()=>{hint.textContent='';hint.className='hint';},2000);
-  } catch(e) { hint.textContent='取得失敗 — 手動入力してください'; hint.className='hint err'; }
+  } catch(e) { hint.textContent='取得失敗: ' + e.message; hint.className='hint err'; }
 }
 
 // ── Events: nav ──
