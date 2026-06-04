@@ -1025,6 +1025,13 @@ async function fetchYahoo(codes) {
 // ── J-Quants ──
 const JQ_V1 = 'https://api.jquants.com/v1';
 const JQ_V2 = 'https://api.jquants.com/v2';
+// J-Quants APIはブラウザからの直接アクセスをCORSで制限しているためプロキシ経由でアクセス
+const JQ_PROXY = 'https://corsproxy.io/?url=';
+function jqFetch(path, apiKey) {
+  return fetch(JQ_PROXY + encodeURIComponent(JQ_V2 + path), {
+    headers: { 'x-api-key': apiKey }
+  });
+}
 
 function jqDate(daysAgo) {
   const d = new Date(); d.setDate(d.getDate()-daysAgo);
@@ -1076,33 +1083,26 @@ async function fetchJQuantsV1(codes) {
 
 // ── V2: APIキー認証（2025年12月以降の新ユーザー向け） ──
 async function fetchJQuantsV2(codes, apiKey) {
-  const hdrs = {'x-api-key': apiKey};
   const map = {};
   for (const code of codes) {
     try {
-      // 銘柄名を取得（オプション）
       let name = code;
       try {
-        const mr = await fetch(JQ_V2+'/equities/master?code='+encodeURIComponent(code), {headers:hdrs});
+        const mr = await jqFetch('/listed/info?code=' + encodeURIComponent(code), apiKey);
         if (mr.ok) {
           const md = await mr.json();
-          const item = (md.data||[])[0];
-          if (item) name = item.CompanyName || item.company_name || code;
+          const item = (md.info || [])[0];
+          if (item) name = item.CompanyName || code;
         }
       } catch(e) {}
 
-      // 直近7日間の終値を取得
       let price = null;
-      for (let di=0; di<7; di++) {
-        const ds = jqDate(di);
-        const pr = await fetch(JQ_V2+'/equities/bars/daily?code='+encodeURIComponent(code)+'&date='+ds, {headers:hdrs});
+      for (let di = 0; di < 7; di++) {
+        const pr = await jqFetch('/prices/daily_quotes?code=' + encodeURIComponent(code) + '&date=' + jqDate(di), apiKey);
         if (!pr.ok) continue;
         const pd = await pr.json();
-        const items = pd.data || [];
-        if (items.length > 0) {
-          const item = items[0];
-          // V2はカラム名が短縮されている場合がある
-          price = item.Close ?? item.close ?? item.AdjClose ?? item.adj_close ?? null;
+        if (pd.daily_quotes?.length) {
+          price = pd.daily_quotes[0].Close ?? null;
           if (price !== null) break;
         }
       }
@@ -1297,11 +1297,10 @@ document.getElementById('jqTokenSave').addEventListener('click', async function(
   this.disabled = true;
   jqSetStatus('接続テスト中…');
   try {
-    // V2 APIキー（x-api-key）で接続テスト
-    const testRes = await fetch(JQ_V2+'/equities/bars/daily?code=7203&date='+jqDate(1), {
-      headers: {'x-api-key': token}
-    });
+    const testRes = await jqFetch('/prices/daily_quotes?code=7203&date=' + jqDate(1), token);
     if (!testRes.ok) throw new Error('接続失敗（HTTP ' + testRes.status + '）— APIキーをご確認ください');
+    const testData = await testRes.json();
+    if (!testData.daily_quotes) throw new Error('レスポンス形式が不正です — APIキーをご確認ください');
     localStorage.setItem(JQK, token);
     localStorage.setItem(JQ_MODE, 'apikey');
     jqSetStatus('✓ 接続成功！APIキーを保存しました', 'ok');
