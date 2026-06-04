@@ -450,10 +450,34 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5}
     <div class="mbody">
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px">JPX公式API。全上場銘柄（英数字コード含む）の終値を取得できます。無料プランは <strong>jpx-jquants.com</strong> で登録できます。</p>
       <div class="status-box" id="jqStatus">未設定</div>
-      <div class="ff"><label class="fl">メールアドレス</label><input class="fi" type="email" id="jqEmail" autocomplete="email" placeholder="登録メールアドレス"></div>
-      <div class="ff"><label class="fl">パスワード</label><input class="fi" type="password" id="jqPass" autocomplete="current-password" placeholder="パスワード"></div>
-      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">認証後はリフレッシュトークンのみ保存されます。取得価格は前日終値です。</p>
-      <button class="btn-p" id="jqSave">接続テスト・保存</button>
+
+      <!-- 認証方式トグル -->
+      <div style="display:flex;background:var(--neutral);border-radius:10px;padding:3px;margin-bottom:14px">
+        <button class="pv-btn on" id="jqMethodPass" style="font-size:12px">メール・パスワード</button>
+        <button class="pv-btn" id="jqMethodToken" style="font-size:12px">リフレッシュトークン</button>
+      </div>
+
+      <!-- メール・パスワード入力欄 -->
+      <div id="jqPassSection">
+        <div class="ff"><label class="fl">メールアドレス</label><input class="fi" type="email" id="jqEmail" autocomplete="email" placeholder="登録メールアドレス"></div>
+        <div class="ff"><label class="fl">パスワード</label><input class="fi" type="password" id="jqPass" autocomplete="current-password" placeholder="パスワード"></div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:12px">認証後はリフレッシュトークンのみ保存されます。パスワードは保存されません。</p>
+        <button class="btn-p" id="jqSave">接続テスト・保存</button>
+      </div>
+
+      <!-- トークン直接入力欄 -->
+      <div id="jqTokenSection" style="display:none">
+        <div class="ff">
+          <label class="fl">リフレッシュトークン</label>
+          <input class="fi" type="text" id="jqTokenInput" placeholder="eyJ..." autocomplete="off" style="font-family:'JetBrains Mono',monospace;font-size:12px">
+        </div>
+        <p style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:12px">
+          <a href="https://jpx-jquants.com" target="_blank" style="color:var(--accent2)">jpx-jquants.com</a> にログイン後、マイページからリフレッシュトークンをコピーして貼り付けてください。トークンはローカルにのみ保存されます。
+        </p>
+        <button class="btn-p" id="jqTokenSave">保存・接続テスト</button>
+      </div>
+
+      <p style="font-size:11px;color:var(--text3);margin-top:8px;margin-bottom:12px">取得価格は前日終値です（リアルタイムではありません）。</p>
       <button class="btn-s" id="jqCancel">閉じる</button>
     </div>
   </div>
@@ -1034,29 +1058,65 @@ document.getElementById('editDelete').addEventListener('click', () => {
 });
 
 // ── Events: JQ modal ──
+function jqSetStatus(msg, cls) {
+  const box = document.getElementById('jqStatus');
+  box.textContent = msg; box.className = 'status-box' + (cls?' '+cls:'');
+}
+function jqSwitchMethod(method) {
+  const isPass = method === 'pass';
+  document.getElementById('jqPassSection').style.display  = isPass ? '' : 'none';
+  document.getElementById('jqTokenSection').style.display = isPass ? 'none' : '';
+  document.getElementById('jqMethodPass').classList.toggle('on',  isPass);
+  document.getElementById('jqMethodToken').classList.toggle('on', !isPass);
+}
+document.getElementById('jqMethodPass').addEventListener('click',  () => jqSwitchMethod('pass'));
+document.getElementById('jqMethodToken').addEventListener('click', () => jqSwitchMethod('token'));
+
 document.getElementById('jqRow').addEventListener('click', () => {
   const rt = localStorage.getItem(JQK);
-  const box = document.getElementById('jqStatus');
-  box.textContent = rt ? '✓ 接続済み（リフレッシュトークンあり）' : '未設定';
-  box.className = 'status-box' + (rt?' ok':'');
-  document.getElementById('jqEmail').value=''; document.getElementById('jqPass').value='';
+  jqSetStatus(rt ? '✓ 接続済み（リフレッシュトークンあり）' : '未設定', rt ? 'ok' : '');
+  document.getElementById('jqEmail').value='';
+  document.getElementById('jqPass').value='';
+  document.getElementById('jqTokenInput').value='';
+  jqSwitchMethod('pass');
   openModal('jqModal');
 });
-document.getElementById('jqClose').addEventListener('click', () => closeModal('jqModal'));
+document.getElementById('jqClose').addEventListener('click',  () => closeModal('jqModal'));
 document.getElementById('jqCancel').addEventListener('click', () => closeModal('jqModal'));
+
+// メール・パスワード認証
 document.getElementById('jqSave').addEventListener('click', async function() {
-  const email=document.getElementById('jqEmail').value.trim(), pass=document.getElementById('jqPass').value;
-  if (!email||!pass) { alert('メールアドレスとパスワードを入力してください'); return; }
-  this.disabled=true;
-  const box = document.getElementById('jqStatus');
-  box.textContent='接続中…'; box.className='status-box';
+  const email = document.getElementById('jqEmail').value.trim();
+  const pass  = document.getElementById('jqPass').value;
+  if (!email || !pass) { alert('メールアドレスとパスワードを入力してください'); return; }
+  this.disabled = true;
+  jqSetStatus('接続中…');
   try {
     await jqLogin(email, pass); await jqIdToken();
-    box.textContent='✓ 接続成功！保存しました'; box.className='status-box ok';
+    jqSetStatus('✓ 接続成功！保存しました', 'ok');
     document.getElementById('jqEmail').value=''; document.getElementById('jqPass').value='';
     renderSettings();
-  } catch(e) { box.textContent='✗ '+e.message; box.className='status-box err'; }
-  this.disabled=false;
+  } catch(e) { jqSetStatus('✗ '+e.message, 'err'); }
+  this.disabled = false;
+});
+
+// リフレッシュトークン直接入力
+document.getElementById('jqTokenSave').addEventListener('click', async function() {
+  const token = document.getElementById('jqTokenInput').value.trim();
+  if (!token) { alert('リフレッシュトークンを入力してください'); return; }
+  this.disabled = true;
+  jqSetStatus('接続テスト中…');
+  localStorage.setItem(JQK, token);
+  try {
+    await jqIdToken();
+    jqSetStatus('✓ 接続成功！トークンを保存しました', 'ok');
+    document.getElementById('jqTokenInput').value='';
+    renderSettings();
+  } catch(e) {
+    localStorage.removeItem(JQK);
+    jqSetStatus('✗ トークンが無効です: '+e.message, 'err');
+  }
+  this.disabled = false;
 });
 
 // ── Events: alert settings ──
