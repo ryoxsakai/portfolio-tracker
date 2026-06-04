@@ -1175,16 +1175,64 @@ async function fetchAndFill() {
   if (!code) return;
   document.getElementById('fCode').value = code;
   const hint = document.getElementById('fetchHint');
-  hint.textContent='取得中…'; hint.className='hint';
+  hint.textContent = '取得中…'; hint.className = 'hint';
+
+  // Step 1: Yahoo Finance
   try {
-    const map = await fetchQuotes([code]);
-    const q = map[code.toUpperCase()];
-    if (!q) throw new Error('データが見つかりません（'+code+'）');
-    if (!document.getElementById('fName').value) document.getElementById('fName').value = q.name;
-    if (!document.getElementById('fCur').value && q.price) document.getElementById('fCur').value = q.price;
-    hint.textContent='✓ 取得完了'; hint.className='hint ok';
-    setTimeout(()=>{hint.textContent='';hint.className='hint';},2000);
-  } catch(e) { hint.textContent='取得失敗: ' + e.message; hint.className='hint err'; }
+    const yMap = await fetchYahoo([code]);
+    const q = yMap[code];
+    if (q && q.price) {
+      if (!document.getElementById('fName').value) document.getElementById('fName').value = q.name || code;
+      if (!document.getElementById('fCur').value) document.getElementById('fCur').value = q.price;
+      hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
+      setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2000);
+      return;
+    }
+  } catch(e) {}
+
+  // Step 2: J-Quants
+  const apiKey = localStorage.getItem(JQK);
+  if (!apiKey) {
+    hint.textContent = '設定からJ-Quants APIキーを登録してください'; hint.className = 'hint err';
+    return;
+  }
+  try {
+    const c5 = jqCode(code);
+    let name = code;
+    try {
+      const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(c5), apiKey);
+      if (mr.ok) { const md = await mr.json(); name = (md.data||[])[0]?.CompanyName || code; }
+    } catch(e2) {}
+
+    const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
+    if (!pr.ok) {
+      let msg = 'HTTP ' + pr.status;
+      try { const b = await pr.json(); msg += ': ' + (b.message || JSON.stringify(b)).slice(0, 70); } catch(e2) {}
+      hint.textContent = 'J-Quants エラー: ' + msg; hint.className = 'hint err';
+      return;
+    }
+    const pd = await pr.json();
+    const items = pd.data || [];
+    if (!items.length) {
+      hint.textContent = 'J-Quants: データなし（コード: ' + c5 + '）'; hint.className = 'hint err';
+      return;
+    }
+    const latest = items[items.length - 1];
+    let price = null;
+    for (const f of ['close','Close','AdjustedClose','adjusted_close','adjClose','adj_close','ClosePrice','close_price']) {
+      if (latest[f] != null && latest[f] !== 0) { price = latest[f]; break; }
+    }
+    if (price === null) {
+      hint.textContent = 'J-Quants: フィールド不明 (' + Object.keys(latest).join(', ') + ')'; hint.className = 'hint err';
+      return;
+    }
+    if (!document.getElementById('fName').value) document.getElementById('fName').value = name;
+    if (!document.getElementById('fCur').value) document.getElementById('fCur').value = price;
+    hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
+    setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2000);
+  } catch(e) {
+    hint.textContent = 'J-Quants 接続失敗: ' + e.message; hint.className = 'hint err';
+  }
 }
 
 // ── Events: nav ──
