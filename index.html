@@ -1099,11 +1099,12 @@ async function fetchJQuantsV2(codes, apiKey) {
       const c5 = jqCode(code);
       let name = code;
       try {
-        const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(c5), apiKey);
+        // マスターは4桁コードで検索（5桁だとヒットしないことがある）
+        const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code), apiKey);
         if (mr.ok) {
           const md = await mr.json();
           const item = (md.data || [])[0];
-          if (item) name = item.CompanyName || item.company_name || code;
+          if (item) name = item.CompanyName || item.company_name || item.Name || item.name || code;
         }
       } catch(e) {}
 
@@ -1206,8 +1207,12 @@ async function fetchAndFill() {
     const c5 = jqCode(code);
     let name = code;
     try {
-      const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(c5), apiKey);
-      if (mr.ok) { const md = await mr.json(); name = (md.data||[])[0]?.CompanyName || code; }
+      const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code), apiKey);
+      if (mr.ok) {
+        const md = await mr.json();
+        const item = (md.data || [])[0];
+        if (item) name = item.CompanyName || item.company_name || item.Name || item.name || code;
+      }
     } catch(e2) {}
 
     const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
