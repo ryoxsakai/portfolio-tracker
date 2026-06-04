@@ -1100,11 +1100,11 @@ async function fetchJQuantsV2(codes, apiKey) {
       let name = code;
       try {
         // マスターは4桁コードで検索（5桁だとヒットしないことがある）
-        const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code), apiKey);
+        const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code) + '&date=' + jqDate(1), apiKey);
         if (mr.ok) {
           const md = await mr.json();
           const item = (md.data || [])[0];
-          if (item) name = item.CompanyName || item.company_name || item.Name || item.name || code;
+          if (item) name = item.CoName || item.CompanyName || item.company_name || code;
         }
       } catch(e) {}
 
@@ -1211,14 +1211,7 @@ async function fetchAndFill() {
       if (mr.ok) {
         const md = await mr.json();
         const item = (md.data || [])[0];
-        if (item) {
-          name = item.CompanyName || item.company_name || item.Name || item.name;
-          if (!name) {
-            // フィールド名を直接表示してデバッグ
-            document.getElementById('fName').value = Object.keys(item).join(', ');
-            return;
-          }
-        }
+        if (item) name = item.CoName || item.CompanyName || item.company_name || code;
       }
     } catch(e2) {}
 
