@@ -1187,7 +1187,12 @@ async function fetchYahoo(codes) {
       const list = data?.quoteResponse?.result;
       if (!list) continue;
       const map={};
-      list.forEach(q => { map[q.symbol.replace(/\.T$/i,'').toUpperCase()] = { name: q.shortName||q.longName||q.symbol, price: q.regularMarketPrice }; });
+      list.forEach(q => {
+        const c = q.symbol.replace(/\.T$/i,'').toUpperCase();
+        map[c] = { name: q.shortName||q.longName||q.symbol, price: q.regularMarketPrice,
+          dividendRate: q.dividendRate || q.trailingAnnualDividendRate || 0,
+          exDividendDate: q.exDividendDate || 0, payDate: q.payDate || 0 };
+      });
       return map;
     } catch(e) { console.error('Yahoo:', e); }
   }
@@ -1342,13 +1347,48 @@ async function refreshAllPrices(btnEl) {
   if (btnEl) { btnEl.disabled=false; btnEl.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>'; }
 }
 
+// ── Sector / cyclicality / dividend helpers ──
+const S33_MAP = {
+  '水産・農林業':'その他','鉱業':'エネルギー','建設業':'その他',
+  '食料品':'食品・飲料','繊維製品':'製造業','パルプ・紙':'製造業',
+  '化学':'素材','医薬品':'医薬品','石油・石炭製品':'エネルギー',
+  'ゴム製品':'製造業','ガラス・土石製品':'素材','鉄鋼':'素材',
+  '非鉄金属':'素材','金属製品':'製造業','機械':'製造業',
+  '電気機器':'IT・通信','輸送用機器':'自動車','精密機器':'製造業',
+  'その他製品':'その他','電気・ガス業':'インフラ','陸運業':'輸送',
+  '海運業':'輸送','空運業':'輸送','倉庫・運輸関連業':'輸送',
+  '情報・通信業':'IT・通信','卸売業':'小売業','小売業':'小売業',
+  '銀行業':'金融','証券・商品先物取引業':'金融','保険業':'金融',
+  'その他金融業':'金融','不動産業':'不動産','サービス業':'サービス業'
+};
+const SEC_CYC = {
+  'IT・通信':'グロース','医薬品':'ディフェンシブ','食品・飲料':'ディフェンシブ',
+  'インフラ':'ディフェンシブ','金融':'シクリカル','不動産':'シクリカル',
+  '製造業':'シクリカル','自動車':'シクリカル','素材':'シクリカル',
+  'エネルギー':'シクリカル','輸送':'シクリカル','小売業':'シクリカル',
+  'サービス業':'グロース'
+};
+function mapS33(s33nm) { return S33_MAP[s33nm] || ''; }
+function mapCyc(sector) { return SEC_CYC[sector] || ''; }
+function inferDivMonths(exDivTs, payDateTs) {
+  const addM = (m, n) => (m - 1 + n) % 12 + 1;
+  if (!exDivTs && !payDateTs) return [];
+  if (payDateTs) {
+    const m1 = new Date(payDateTs * 1000).getMonth() + 1;
+    return [m1, addM(m1, 6)].sort((a,b) => a-b);
+  }
+  const exM = new Date(exDivTs * 1000).getMonth() + 1;
+  const m1 = addM(exM, 3); // 権利落ち日の約3ヶ月後が支払い月
+  return [m1, addM(m1, 6)].sort((a,b) => a-b);
+}
+
 // ── Auto-fetch on code input (prefix: 'f' for add modal, 'eF' for edit modal) ──
 async function fetchAndFill(prefix) {
   prefix = prefix || 'f';
   const hintId = prefix === 'eF' ? 'editFetchHint' : 'fetchHint';
-  const codeEl = document.getElementById(prefix + 'Code');
-  const nameEl = document.getElementById(prefix + 'Name');
-  const curEl  = document.getElementById(prefix + 'Cur');
+  const g = id => document.getElementById(prefix + id);
+  const codeEl = g('Code'), nameEl = g('Name'), curEl = g('Cur');
+  const secEl = g('Sec'), cycEl = g('Cyc'), divEl = g('Div'), divMEl = g('DivM');
   if (!codeEl) return;
   const code = codeEl.value.trim().toUpperCase();
   if (!code) return;
@@ -1356,70 +1396,73 @@ async function fetchAndFill(prefix) {
   const hint = document.getElementById(hintId);
   hint.textContent = '取得中…'; hint.className = 'hint';
 
-  // 名前の更新条件: 空 OR コードと同じ（未取得のまま）
-  const shouldUpdateName = () => !nameEl.value || nameEl.value.toUpperCase() === code;
+  const noVal = el => !el || !el.value;
+  const shouldUpdateName  = () => !nameEl.value || nameEl.value.toUpperCase() === code;
   const shouldUpdatePrice = () => !curEl.value || curEl.value === '0';
 
-  // Step 1: Yahoo Finance
+  let gotPrice = false;
+
+  // Step 1: Yahoo Finance — 株価・名前・配当
   try {
     const yMap = await fetchYahoo([code]);
     const q = yMap[code];
     if (q && q.price) {
       if (shouldUpdateName()) nameEl.value = q.name || code;
       if (shouldUpdatePrice()) curEl.value = q.price;
-      hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
-      setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2000);
-      return;
+      if (divEl && noVal(divEl) && q.dividendRate > 0) divEl.value = q.dividendRate;
+      if (divMEl && noVal(divMEl)) {
+        const months = inferDivMonths(q.exDividendDate, q.payDate);
+        if (months.length) divMEl.value = months.join(' ');
+      }
+      gotPrice = true;
     }
   } catch(e) {}
 
-  // Step 2: J-Quants
+  // Step 2: J-Quants master — 銘柄名・セクター・景気影響
   const apiKey = localStorage.getItem(JQK);
-  if (!apiKey) {
-    hint.textContent = '設定からJ-Quants APIキーを登録してください'; hint.className = 'hint err';
-    return;
-  }
-  try {
-    const c5 = jqCode(code);
-    let name = null;
+  if (apiKey) {
     try {
       const mr = await jqFetch('/equities/master?code=' + encodeURIComponent(code) + '&date=' + jqDate(1), apiKey);
       if (mr.ok) {
         const md = await mr.json();
         const item = (md.data || [])[0];
-        if (item) name = item.CoName || item.CompanyName || item.company_name || null;
+        if (item) {
+          if (shouldUpdateName()) nameEl.value = item.CoName || nameEl.value || code;
+          const sector = mapS33(item.S33Nm || '');
+          if (secEl && noVal(secEl) && sector) secEl.value = sector;
+          if (cycEl && noVal(cycEl) && sector) { const cyc = mapCyc(sector); if (cyc) cycEl.value = cyc; }
+        }
       }
-    } catch(e2) {}
+    } catch(e) {}
 
-    const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
-    if (!pr.ok) {
-      let msg = 'HTTP ' + pr.status;
-      try { const b = await pr.json(); msg += ': ' + (b.message || JSON.stringify(b)).slice(0, 60); } catch(e2) {}
-      hint.textContent = 'J-Quants エラー: ' + msg; hint.className = 'hint err';
-      return;
+    // J-Quantsで株価も取得（Yahoo取得済みならスキップ）
+    if (!gotPrice) {
+      try {
+        const c5 = jqCode(code);
+        const pr = await jqFetch('/equities/bars/daily?code=' + encodeURIComponent(c5) + '&from=' + jqDate(7) + '&to=' + jqDate(0), apiKey);
+        if (!pr.ok) {
+          let msg = 'HTTP ' + pr.status;
+          try { const b = await pr.json(); msg += ': ' + (b.message||JSON.stringify(b)).slice(0,60); } catch(e2) {}
+          hint.textContent = 'J-Quants エラー: ' + msg; hint.className = 'hint err'; return;
+        }
+        const pd = await pr.json();
+        const items = pd.data || [];
+        if (!items.length) { hint.textContent = 'データなし（コード: '+c5+'）'; hint.className = 'hint err'; return; }
+        const latest = items[items.length - 1];
+        let price = null;
+        for (const f of ['AdjC','C','close','Close']) { if (latest[f] != null && latest[f] !== 0) { price = latest[f]; break; } }
+        if (price === null) { hint.textContent = 'J-Quants: フィールド不明 ('+Object.keys(latest).join(', ')+')'; hint.className = 'hint err'; return; }
+        if (shouldUpdatePrice()) curEl.value = price;
+        gotPrice = true;
+      } catch(e) { hint.textContent = 'J-Quants 接続失敗: '+e.message; hint.className = 'hint err'; return; }
     }
-    const pd = await pr.json();
-    const items = pd.data || [];
-    if (!items.length) {
-      hint.textContent = 'J-Quants: データなし（コード: ' + c5 + '）'; hint.className = 'hint err';
-      return;
-    }
-    const latest = items[items.length - 1];
-    let price = null;
-    for (const f of ['AdjC','C','close','Close','AdjustedClose','adjusted_close','adjClose','adj_close']) {
-      if (latest[f] != null && latest[f] !== 0) { price = latest[f]; break; }
-    }
-    if (price === null) {
-      hint.textContent = 'J-Quants: フィールド不明 (' + Object.keys(latest).join(', ') + ')'; hint.className = 'hint err';
-      return;
-    }
-    if (shouldUpdateName() && name) nameEl.value = name;
-    if (shouldUpdatePrice()) curEl.value = price;
-    hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
-    setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2000);
-  } catch(e) {
-    hint.textContent = 'J-Quants 接続失敗: ' + e.message; hint.className = 'hint err';
+  } else if (!gotPrice) {
+    hint.textContent = '設定からJ-Quants APIキーを登録してください'; hint.className = 'hint err'; return;
   }
+
+  if (!gotPrice) { hint.textContent = '取得できませんでした'; hint.className = 'hint err'; return; }
+  hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
+  setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2500);
 }
 
 // ── Events: nav ──
