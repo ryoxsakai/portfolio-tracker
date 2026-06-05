@@ -2041,6 +2041,84 @@ async function fetchJQStatement(code, apiKey) {
   return null;
 }
 
+// ── J-Quants Bulk API で配当CSV取得（/equities/dividends APIが403のプラン向け） ──
+function parseDividendCSV(csv, code) {
+  const lines = csv.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return null;
+  const sep = lines[0].includes('\t') ? '\t' : ',';
+  const headers = lines[0].split(sep).map(h => h.replace(/^"|"$/g, '').trim());
+  const codeIdx = headers.findIndex(h => /^code$/i.test(h) || h === '銘柄コード');
+  if (codeIdx < 0) { console.warn('parseDivCSV: no Code column', headers); return null; }
+  const target = jqCode(code);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = lines[i].split(sep).map(v => v.replace(/^"|"$/g, '').trim());
+    if (!vals[codeIdx]) continue;
+    if (vals[codeIdx] === target || vals[codeIdx].slice(0,4) === code.slice(0,4)) {
+      const row = {};
+      headers.forEach((h, j) => row[h] = vals[j] || '');
+      rows.push(row);
+    }
+  }
+  if (!rows.length) return null;
+  rows.sort((a, b) => (b.RecordDate || b.DisclosedDate || '').localeCompare(a.RecordDate || a.DisclosedDate || ''));
+  const months = [...new Set(
+    rows.slice(0,4).map(r => {
+      const d = r.RecordDate || r.CurrentPeriodEndDate || '';
+      return d ? new Date(d).getMonth() + 1 : 0;
+    }).filter(m => m > 0)
+  )].sort((a, b) => a - b);
+  let annualDiv = 0;
+  for (const row of rows) {
+    const fv = parseFloat(row.ForecastDividendPerShareAnnual);
+    if (!isNaN(fv) && fv > 0) { annualDiv = fv; break; }
+  }
+  if (!annualDiv) {
+    const yr = rows[0]?.CurrentPeriodEndDate?.slice(0, 4);
+    if (yr) annualDiv = rows
+      .filter(r => (r.CurrentPeriodEndDate||'').startsWith(yr) && parseFloat(r.DividendPerShare) > 0)
+      .reduce((s, r) => s + parseFloat(r.DividendPerShare||0), 0);
+  }
+  if (!annualDiv && !months.length) return null;
+  return { annualDiv: Math.round(annualDiv * 100) / 100, months };
+}
+
+async function fetchJQBulkDividend(code, apiKey) {
+  try {
+    // Step 1: 利用可能なCSVファイル一覧を取得
+    const listR = await jqFetch('/bulk/list?endpoint=' + encodeURIComponent('/equities/dividends'), apiKey);
+    if (!listR.ok) { console.warn('JQBulk list HTTP', listR.status); return null; }
+    const listD = await listR.json();
+    const files = listD.files || listD.data || listD.keys || [];
+    console.log('JQBulk files:', files.length, JSON.stringify(files.slice(-2)));
+    if (!files.length) return null;
+
+    // 最新ファイルを取得
+    files.sort((a, b) => String(b.date||b.key||b.Key||'').localeCompare(String(a.date||a.key||a.Key||'')));
+    const f     = files[0];
+    const fKey  = f.key || f.Key || f.filename || f.name || '';
+
+    // Step 2: ファイル本体をダウンロード（gzip）
+    const dlR = await fetch(
+      JQ_PROXY + encodeURIComponent(JQ_V2 + '/bulk/file?key=' + encodeURIComponent(fKey)),
+      { headers: { 'x-api-key': apiKey } }
+    );
+    if (!dlR.ok) { console.warn('JQBulk file HTTP', dlR.status); return null; }
+
+    // Step 3: gzip展開 → CSV解析
+    let text;
+    try {
+      const ds = new DecompressionStream('gzip');
+      text = await new Response(dlR.body.pipeThrough(ds)).text();
+    } catch(e) {
+      // DecompressionStream非対応ブラウザはそのままテキストとして試みる
+      text = await dlR.text();
+    }
+    console.log('JQBulk CSV rows:', text.split('\n').length, 'header:', text.split('\n')[0].slice(0,80));
+    return parseDividendCSV(text, code);
+  } catch(e) { console.warn('JQBulkDividend', e); return null; }
+}
+
 async function fetchAndFill(prefix) {
   prefix = prefix || 'f';
   const hintId = prefix === 'eF' ? 'editFetchHint' : 'fetchHint';
@@ -2061,11 +2139,13 @@ async function fetchAndFill(prefix) {
   const jqStored = localStorage.getItem(JQK);
   const apiKey   = jqMode === 'apikey' ? jqStored : null;
 
-  // 配当: JQ dividends → Yahoo quoteSummary → Yahoo quote の順で試行
+  // 配当: JQ Bulk → JQ dividends API → Yahoo chart の順で試行
   const divPromise = (async () => {
     if (apiKey) {
-      const jqd = await fetchJQDividend(code, apiKey).catch(()=>null);
-      if (jqd) return jqd;
+      const bulk = await fetchJQBulkDividend(code, apiKey).catch(()=>null);
+      if (bulk) return bulk;
+      const jqd  = await fetchJQDividend(code, apiKey).catch(()=>null);
+      if (jqd)  return jqd;
     }
     return await fetchYahooDividend(code).catch(()=>null);
   })();
