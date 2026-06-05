@@ -1932,9 +1932,10 @@ async function fetchJQMaster(code, apiKey) {
 async function fetchJQDividend(code, apiKey) {
   try {
     const r = await jqFetch('/equities/dividends?code='+encodeURIComponent(jqCode(code)), apiKey);
-    if (!r.ok) return null;
+    if (!r.ok) { console.warn('JQDividend HTTP', r.status); return null; }
     const d = await r.json();
-    const all = (d.data||[]).filter(x => x.RecordDate);
+    console.log('JQDividend keys:', Object.keys(d));
+    const all = (d.dividends || d.data || d.Dividends || []).filter(x => x.RecordDate);
     if (!all.length) return null;
     all.sort((a,b) => (b.RecordDate||'').localeCompare(a.RecordDate||''));
 
@@ -1944,31 +1945,35 @@ async function fetchJQDividend(code, apiKey) {
     // 年間配当: ForecastDividendPerShareAnnual 優先、なければ直近期の実績合計
     let annualDiv = 0;
     for (const x of all) {
-      if ((x.ForecastDividendPerShareAnnual||0) > 0) { annualDiv = x.ForecastDividendPerShareAnnual; break; }
+      const fv = parseFloat(x.ForecastDividendPerShareAnnual);
+      if (!isNaN(fv) && fv > 0) { annualDiv = fv; break; }
     }
     if (!annualDiv) {
       const yr = all[0]?.CurrentPeriodEndDate?.slice(0,4);
       if (yr) annualDiv = all
-        .filter(x => (x.CurrentPeriodEndDate||'').startsWith(yr) && (x.DividendPerShare||0) > 0)
-        .reduce((s,x) => s+(x.DividendPerShare||0), 0);
+        .filter(x => (x.CurrentPeriodEndDate||'').startsWith(yr) && parseFloat(x.DividendPerShare) > 0)
+        .reduce((s,x) => s+parseFloat(x.DividendPerShare||0), 0);
     }
     return { annualDiv, months };
-  } catch(e) { return null; }
+  } catch(e) { console.warn('JQDividend', e); return null; }
 }
 
 // /fins/statements を使った配当情報取得（より確実）
 async function fetchJQStatement(code, apiKey) {
+  // 5桁コードで試し、ダメなら4桁コードでリトライ
+  for (const tryCode of [jqCode(code), code]) {
   try {
-    const r = await jqFetch('/fins/statements?code=' + encodeURIComponent(jqCode(code)), apiKey);
+    const r = await jqFetch('/fins/statements?code=' + encodeURIComponent(tryCode), apiKey);
     if (!r.ok) {
       let body = '';
       try { body = JSON.stringify(await r.json()); } catch(e2) {}
-      console.warn('JQStatement HTTP', r.status, body);
-      return null;
+      console.warn('JQStatement HTTP', r.status, body, 'code:', tryCode);
+      continue;
     }
     const d = await r.json();
-    console.log('JQStatement raw keys:', Object.keys(d), 'count:', (d.statements||d.data||[]).length);
-    const all = d.statements || d.data || [];
+    const all = d.statements || d.data || d.Statements || d.FinancialStatements || (Array.isArray(d) ? d : []);
+    console.log('JQStatement code:', tryCode, 'keys:', Object.keys(d), 'n:', all.length);
+    if (!all.length) continue;
     if (!all.length) return null;
 
     // DisclosedDate 降順でソート→最新レコードを取得
@@ -1990,9 +1995,11 @@ async function fetchJQStatement(code, apiKey) {
     const annualDiv = (!isNaN(fv) && fv > 0) ? fv : (!isNaN(rv) && rv > 0) ? rv : 0;
     console.log('JQStatement latest:', latest.DisclosedDate, 'endDate:', endDate, 'months:', months, 'fv:', latest.ForecastDividendPerShareAnnual, 'rv:', latest.ResultDividendPerShareAnnual, '→', annualDiv);
 
-    if (!annualDiv && !months.length) return null;
+    if (!annualDiv && !months.length) continue;
     return { annualDiv, months };
-  } catch(e) { console.warn('JQStatement', e); return null; }
+  } catch(e) { console.warn('JQStatement', e); }
+  } // end for tryCode
+  return null;
 }
 
 async function fetchAndFill(prefix) {
@@ -2090,7 +2097,24 @@ async function fetchAndFill(prefix) {
   }
 
   if (!gotPrice) { hint.textContent = '取得できませんでした'; hint.className = 'hint err'; return; }
-  const divHint = gotDiv ? '・配当✓' : (apiKey ? '・配当なし' : '・配当要APIキー');
+
+  if (!gotDiv && apiKey) {
+    // 診断: 配当エンドポイントの実際のエラーをヒントに表示
+    try {
+      const dr = await jqFetch('/fins/statements?code=' + encodeURIComponent(jqCode(code)), apiKey);
+      const dbody = await dr.json().catch(() => ({}));
+      const dkeys = Object.keys(dbody).join(',') || '(空)';
+      const dcount = (dbody.statements||dbody.data||[]).length;
+      hint.textContent = `✓ 取得完了（配当API: HTTP${dr.status} keys:${dkeys} n=${dcount}）`;
+    } catch(e) {
+      hint.textContent = `✓ 取得完了（配当APIエラー: ${e.message.slice(0,30)}）`;
+    }
+    hint.className = 'hint ok';
+    setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 8000);
+    return;
+  }
+
+  const divHint = gotDiv ? '・配当✓' : '・配当要APIキー';
   hint.textContent = '✓ 取得完了' + divHint; hint.className = 'hint ok';
   setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 3500);
 }
