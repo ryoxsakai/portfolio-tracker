@@ -819,9 +819,13 @@ function saveHistory() { if (history.length > 400) history = history.slice(-400)
 function saveCfg() { localStorage.setItem(CFG, JSON.stringify(cfg)); }
 
 // ── Portfolio math ──
-function totalValue() { return stocks.reduce((s,x) => s + x.currentPrice * x.shares, 0); }
-function totalCost()  { return stocks.reduce((s,x) => s + x.buyPrice    * x.shares, 0); }
-function totalPL()    { return stocks.reduce((s,x) => s + (x.currentPrice - x.buyPrice) * x.shares, 0); }
+// 投資信託は 口数×基準価額÷10,000 が評価額（基準価額は1万口あたりの値）
+function stockVal(s)  { return isFundCode(s.code) ? s.currentPrice * s.shares / 10000 : s.currentPrice * s.shares; }
+function stockCost(s) { return isFundCode(s.code) ? s.buyPrice     * s.shares / 10000 : s.buyPrice     * s.shares; }
+function stockDiv(s)  { return isFundCode(s.code) ? (s.annualDividend||0) * s.shares / 10000 : (s.annualDividend||0) * s.shares; }
+function totalValue() { return stocks.reduce((s,x) => s + stockVal(x),  0); }
+function totalCost()  { return stocks.reduce((s,x) => s + stockCost(x), 0); }
+function totalPL()    { return stocks.reduce((s,x) => s + stockVal(x) - stockCost(x), 0); }
 function plRate(s)    { return (s.currentPrice - s.buyPrice) / s.buyPrice * 100; }
 
 // ── History snapshot ──
@@ -869,7 +873,7 @@ function openNotifications() {
       const s = a.stock;
       if (a.type === 'profit') return `<div class="notif-item"><div class="notif-ico" style="background:var(--pos-bg)">📈</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 利確ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 上昇（ライン: +${cfg.profitLine}%）</div></div></div>`;
       if (a.type === 'loss')   return `<div class="notif-item"><div class="notif-ico" style="background:var(--neg-bg)">📉</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 損切ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 下落（ライン: ${cfg.lossLine}%）</div></div></div>`;
-      return `<div class="notif-item"><div class="notif-ico" style="background:rgba(91,141,239,.12)">💰</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 今月配当</div><div class="notif-sub">${thisMonth}月は配当月です（予想: ${fmtY(s.annualDividend * s.shares)}）</div></div></div>`;
+      return `<div class="notif-item"><div class="notif-ico" style="background:rgba(91,141,239,.12)">💰</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 今月配当</div><div class="notif-sub">${thisMonth}月は配当月です（予想: ${fmtY(stockDiv(s))}）</div></div></div>`;
     }).join('');
   }
   openModal('notifModal');
@@ -1032,7 +1036,7 @@ function renderHome() {
     el.innerHTML = '<div class="empty"><div class="empty-ico">📊</div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
     return;
   }
-  const top = [...stocks].sort((a,b) => b.currentPrice*b.shares - a.currentPrice*a.shares).slice(0,4);
+  const top = [...stocks].sort((a,b) => stockVal(b) - stockVal(a)).slice(0,4);
   el.innerHTML = top.map(s => {
     const r = plRate(s);
     const diff = s.currentPrice - s.buyPrice;
@@ -1234,19 +1238,20 @@ async function openStockDetail(id) {
   document.getElementById('detailName').textContent  = s.name || s.code;
   document.getElementById('detailCode').textContent  = s.code || '';
   document.getElementById('detailPrice').textContent = fmtPrice(s.currentPrice);
-  const r = plRate(s), pl = (s.currentPrice-s.buyPrice)*s.shares;
+  const r = plRate(s), pl = stockVal(s) - stockCost(s);
   const plEl = document.getElementById('detailPL');
   plEl.textContent = fmtR(r) + '　' + fmtPL(pl);
   plEl.className = 'detail-pl ' + (r>=0?'pos':'neg');
 
-  const val = s.currentPrice*s.shares, cost = s.buyPrice*s.shares;
+  const val = stockVal(s), cost = stockCost(s);
+  const isFund = isFundCode(s.code);
   document.getElementById('detailStats').innerHTML = [
     ['評価額', fmtY(val)],
     ['含み損益', `<span class="${pl>=0?'pos':'neg'}" style="font-family:inherit">${fmtPL(pl)}</span>`],
-    ['保有株数', s.shares.toLocaleString('ja-JP')+'株'],
-    ['取得単価', fmtY(s.buyPrice)],
-    s.annualDividend>0 ? ['年間配当（予）', fmtY(s.annualDividend*s.shares)] : null,
-    s.annualDividend>0 ? ['配当利回り', (s.annualDividend/s.currentPrice*100).toFixed(2)+'%'] : null,
+    [isFund ? '保有口数' : '保有株数', s.shares.toLocaleString('ja-JP') + (isFund ? '口' : '株')],
+    [isFund ? '基準価額(1万口)' : '取得単価', fmtY(s.buyPrice)],
+    s.annualDividend>0 ? [isFund ? '年間分配金（予）' : '年間配当（予）', fmtY(stockDiv(s))] : null,
+    s.annualDividend>0 ? [isFund ? '分配金利回り' : '配当利回り', (s.annualDividend/s.currentPrice*100).toFixed(2)+'%'] : null,
   ].filter(Boolean).map(([l,v]) =>
     `<div><div class="d-stat-l">${l}</div><div class="d-stat-v">${v}</div></div>`
   ).join('');
@@ -1323,10 +1328,10 @@ function renderHoldings() {
     switch (holdingsSortKey) {
       case 'code':     return (a,b) => (a.code||'').localeCompare(b.code||'');
       case 'yield':    return (a,b) => (a.annualDividend/Math.max(a.currentPrice,1)) - (b.annualDividend/Math.max(b.currentPrice,1));
-      case 'dividend': return (a,b) => (a.annualDividend*a.shares) - (b.annualDividend*b.shares);
-      case 'value':    return (a,b) => (a.currentPrice*a.shares) - (b.currentPrice*b.shares);
+      case 'dividend': return (a,b) => stockDiv(a) - stockDiv(b);
+      case 'value':    return (a,b) => stockVal(a) - stockVal(b);
       case 'plrate':   return (a,b) => ((a.currentPrice-a.buyPrice)/Math.max(a.buyPrice,1)) - ((b.currentPrice-b.buyPrice)/Math.max(b.buyPrice,1));
-      case 'pl':       return (a,b) => ((a.currentPrice-a.buyPrice)*a.shares) - ((b.currentPrice-b.buyPrice)*b.shares);
+      case 'pl':       return (a,b) => (stockVal(a)-stockCost(a)) - (stockVal(b)-stockCost(b));
       default:         return null; // editing order
     }
   })();
@@ -1335,7 +1340,7 @@ function renderHoldings() {
     : holdingsSortAsc ? filtered : filtered.slice().reverse();
 
   el.innerHTML = sorted.map((s, i) => {
-    const r = plRate(s), pl = (s.currentPrice - s.buyPrice) * s.shares, val = s.currentPrice * s.shares;
+    const r = plRate(s), pl = stockVal(s) - stockCost(s), val = stockVal(s);
     const ip = r > cfg.profitLine, il = r < cfg.lossLine;
     const tagBadges = (s.tags||[]).map(t => `<span class="htag-badge">${esc(t)}</span>`).join('');
     const badges = [
@@ -1344,7 +1349,7 @@ function renderHoldings() {
       il ? '<span class="badge all">損切ライン到達</span>' : '',
     ].join('');
     const divInfo = s.annualDividend > 0 ? `
-      <div class="hstat"><div class="hstat-l">年間配当（予想）</div><div class="hstat-v">${fmtY(s.annualDividend * s.shares)}</div></div>
+      <div class="hstat"><div class="hstat-l">年間配当（予想）</div><div class="hstat-v">${fmtY(stockDiv(s))}</div></div>
       <div class="hstat"><div class="hstat-l">配当利回り</div><div class="hstat-v">${(s.annualDividend / s.currentPrice * 100).toFixed(2)}%</div></div>` : '';
     const mChips = s.dividendMonths && s.dividendMonths.length ? `<div class="hstat" style="grid-column:1/-1"><div class="hstat-l">配当支払月</div><div class="mchips">${s.dividendMonths.map(m=>`<span class="mchip">${m}月</span>`).join('')}</div></div>` : '';
     return `<div class="hcard ${ip?'pc':il?'lc':''}" style="animation-delay:${i*.04}s" onclick="openStockDetail('${s.id}')">
@@ -1375,14 +1380,14 @@ function cycClass(c) { return c==='ディフェンシブ'?'def':c==='グロー�
 
 // ── Dividend calculations ──
 function totalDividend() {
-  return stocks.reduce((sum, s) => sum + (s.annualDividend || 0) * (s.shares || 0), 0);
+  return stocks.reduce((sum, s) => sum + stockDiv(s), 0);
 }
 
 function monthlyDividends() {
   const monthly = new Array(12).fill(0);
   stocks.forEach(s => {
     if (!s.annualDividend || !s.dividendMonths || !s.dividendMonths.length) return;
-    const perMonth = (s.annualDividend * s.shares) / s.dividendMonths.length;
+    const perMonth = stockDiv(s) / s.dividendMonths.length;
     s.dividendMonths.forEach(m => { if (m >= 1 && m <= 12) monthly[m - 1] += perMonth; });
   });
   return monthly;
@@ -1434,8 +1439,8 @@ function renderDivMonthDetail(month) {
     if (!s.annualDividend || !s.dividendMonths || !s.dividendMonths.length) return false;
     return month ? s.dividendMonths.includes(month) : true;
   }).sort((a, b) => {
-    const av = (a.annualDividend / a.dividendMonths.length) * a.shares;
-    const bv = (b.annualDividend / b.dividendMonths.length) * b.shares;
+    const av = stockDiv(a) / a.dividendMonths.length;
+    const bv = stockDiv(b) / b.dividendMonths.length;
     return bv - av;
   });
   if (!divStocks.length) {
@@ -1444,13 +1449,11 @@ function renderDivMonthDetail(month) {
   }
   const label = month ? month + '月の配当内訳' : '全配当銘柄';
   const monthTotal = divStocks.reduce((sum, s) => {
-    return sum + (month ? (s.annualDividend * s.shares) / s.dividendMonths.length : s.annualDividend * s.shares);
+    return sum + (month ? stockDiv(s) / s.dividendMonths.length : stockDiv(s));
   }, 0);
   el.innerHTML = `<div class="div-detail-hd"><span>${esc(label)}</span><span class="div-hd-total">${fmtY(monthTotal)}</span></div>` +
     divStocks.map((s, i) => {
-      const amt = month
-        ? (s.annualDividend * s.shares) / s.dividendMonths.length
-        : s.annualDividend * s.shares;
+      const amt = month ? stockDiv(s) / s.dividendMonths.length : stockDiv(s);
       const yld = s.currentPrice > 0 ? (s.annualDividend / s.currentPrice * 100).toFixed(2) : '—';
       return `<div class="div-detail-row">
         <div class="div-det-dot" style="background:${COLORS[i % COLORS.length]}"></div>
@@ -1526,7 +1529,7 @@ function groupBy(view, tagFilter) {
   const src = tagFilter ? stocks.filter(s => (s.tags||[]).includes(tagFilter)) : stocks;
   src.forEach(s => {
     const k = (view==='sector'?s.sector : view==='cyclicality'?s.cyclicality : view==='account'?s.account : s.name) || 'その他';
-    g[k] = (g[k]||0) + s.currentPrice * s.shares;
+    g[k] = (g[k]||0) + stockVal(s);
   });
   return Object.entries(g).sort((a,b)=>b[1]-a[1]);
 }
