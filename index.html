@@ -693,7 +693,7 @@ body::after{z-index:-1;background:
       </div>
       <div class="detail-period-lbl" id="detailPeriodLbl"></div>
       <div class="detail-period-row">
-        <button class="detail-per-btn" data-p="1d">1日</button>
+        <button class="detail-per-btn" data-p="1w">1週</button>
         <button class="detail-per-btn on" data-p="1m">1ヶ月</button>
         <button class="detail-per-btn" data-p="3m">3ヶ月</button>
         <button class="detail-per-btn" data-p="1y">1年</button>
@@ -731,12 +731,7 @@ let portfolioTagFilter = null;
 let detailStockId      = null;
 let detailPeriod       = '1m';
 
-const CHART_PERIODS = {
-  '1d': { range: '1d',  interval: '5m'  },
-  '1m': { range: '1mo', interval: '1d'  },
-  '3m': { range: '3mo', interval: '1d'  },
-  '1y': { range: '1y',  interval: '1wk' },
-};
+const CHART_PERIODS = { '1w': 10, '1m': 33, '3m': 95, '1y': 370 };
 
 // ── Load / Save ──
 function loadJSON(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; } }
@@ -1038,23 +1033,26 @@ function renderWatchList() {
 }
 
 // ── Stock detail / chart ──
-async function fetchYahooChart(code, range, interval) {
-  const sym = encodeURIComponent(code + '.T');
-  for (const base of ['https://query1.finance.yahoo.com','https://query2.finance.yahoo.com']) {
-    try {
-      const r = await fetch(`${base}/v8/finance/chart/${sym}?range=${range}&interval=${interval}&includePrePost=false`);
-      if (!r.ok) continue;
-      const d = await r.json();
-      const res = d?.chart?.result?.[0];
-      if (!res) continue;
-      const ts  = res.timestamp || [];
-      const q   = res.indicators?.quote?.[0] || {};
-      const pts = ts.map((t,i) => ({ t, o:q.open?.[i], h:q.high?.[i], l:q.low?.[i], c:q.close?.[i] }))
-                    .filter(p => p.c != null);
-      return { pts, meta: res.meta };
-    } catch(e) { console.warn('YahooChart', e); }
-  }
-  return null;
+async function fetchJQChart(code, daysFrom) {
+  const apiKey = localStorage.getItem(JQK);
+  if (!apiKey) return null;
+  try {
+    const c5 = jqCode(code);
+    const r  = await jqFetch(
+      `/equities/bars/daily?code=${encodeURIComponent(c5)}&from=${jqDate(daysFrom)}&to=${jqDate(0)}`,
+      apiKey
+    );
+    if (!r.ok) return null;
+    const d = await r.json();
+    const items = (d.data || []).sort((a,b) => (a.Date||'').localeCompare(b.Date||''));
+    return items.map(x => ({
+      date: x.Date || '',
+      o: x.AdjO ?? x.O ?? x.Open  ?? 0,
+      h: x.AdjH ?? x.H ?? x.High  ?? 0,
+      l: x.AdjL ?? x.L ?? x.Low   ?? 0,
+      c: x.AdjC ?? x.C ?? x.Close ?? 0,
+    })).filter(p => p.c > 0);
+  } catch(e) { console.warn('JQChart', e); return null; }
 }
 
 function drawStockChart(canvas, pts) {
@@ -1117,14 +1115,11 @@ function drawStockChart(canvas, pts) {
   ctx.beginPath(); ctx.arc(lx,ly,3.5,0,Math.PI*2); ctx.fillStyle = color; ctx.fill();
   ctx.beginPath(); ctx.arc(lx,ly,2,0,Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
 
-  // Date labels
+  // Date labels (pts[i].date = "YYYY-MM-DD")
   ctx.fillStyle = '#7f8faf'; ctx.textAlign = 'center';
   const step = Math.max(1, Math.floor(pts.length/5));
   for (let i=0; i<pts.length; i+=step) {
-    const d = new Date(pts[i].t*1000);
-    const lbl = detailPeriod === '1d'
-      ? p2(d.getHours())+':'+p2(d.getMinutes())
-      : (d.getMonth()+1)+'/'+d.getDate();
+    const lbl = (pts[i].date || '').slice(5).replace('-', '/'); // "MM/DD"
     ctx.fillText(lbl, Math.min(Math.max(xp(i),22), W-pad.r-14), H-7);
   }
 }
@@ -1164,24 +1159,30 @@ async function openStockDetail(id) {
 async function loadDetailChart() {
   const s = stocks.find(x=>x.id===detailStockId);
   if (!s || !s.code) return;
-  const hint = document.getElementById('detailChartHint');
+  const hint   = document.getElementById('detailChartHint');
   const canvas = document.getElementById('detailChart');
+
+  if (!localStorage.getItem(JQK)) {
+    hint.textContent = 'チャートにはJ-Quants APIキーが必要です（設定から登録）';
+    hint.classList.add('on');
+    return;
+  }
+
   hint.textContent = '取得中…'; hint.classList.add('on');
   canvas.style.opacity = '.25';
 
-  const cfg  = CHART_PERIODS[detailPeriod];
-  const data = await fetchYahooChart(s.code, cfg.range, cfg.interval);
+  const pts = await fetchJQChart(s.code, CHART_PERIODS[detailPeriod]);
   hint.classList.remove('on');
   canvas.style.opacity = '1';
 
-  if (!data || !data.pts.length) {
+  if (!pts || !pts.length) {
     hint.textContent = 'チャートデータを取得できませんでした';
     hint.classList.add('on');
     return;
   }
-  drawStockChart(canvas, data.pts);
+  drawStockChart(canvas, pts);
 
-  const first = data.pts[0]?.c, last = data.pts[data.pts.length-1]?.c;
+  const first = pts[0]?.c, last = pts[pts.length-1]?.c;
   if (first && last) {
     const chg = (last-first)/first*100;
     const lbl = document.getElementById('detailPeriodLbl');
