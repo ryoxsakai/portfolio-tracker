@@ -2022,10 +2022,10 @@ async function fetchAndFill(prefix) {
   const jqStored = localStorage.getItem(JQK);
   const apiKey   = jqMode === 'apikey' ? jqStored : null;
 
-  // 配当: /fins/statements 優先 → /equities/dividends フォールバック
+  // 配当: /equities/dividends 優先 → Yahoo Finance フォールバック
+  // (/fins/statements は上位プランのみのため除外)
   const divPromise = apiKey
-    ? fetchJQStatement(code, apiKey).catch(()=>null)
-        .then(r => r || fetchJQDividend(code, apiKey).catch(()=>null))
+    ? fetchJQDividend(code, apiKey).catch(()=>null)
     : Promise.resolve(null);
 
   // 全ソースを並列取得
@@ -2099,15 +2099,15 @@ async function fetchAndFill(prefix) {
   if (!gotPrice) { hint.textContent = '取得できませんでした'; hint.className = 'hint err'; return; }
 
   if (!gotDiv && apiKey) {
-    // 診断: 配当エンドポイントの実際のエラーをヒントに表示
+    // 診断: /equities/dividends の実際のレスポンスをヒントに表示
     try {
-      const dr = await jqFetch('/fins/statements?code=' + encodeURIComponent(jqCode(code)), apiKey);
+      const dr = await jqFetch('/equities/dividends?code=' + encodeURIComponent(jqCode(code)), apiKey);
       const dbody = await dr.json().catch(() => ({}));
       const dkeys = Object.keys(dbody).join(',') || '(空)';
-      const dcount = (dbody.statements||dbody.data||[]).length;
-      hint.textContent = `✓ 取得完了（配当API: HTTP${dr.status} keys:${dkeys} n=${dcount}）`;
+      const arr = dbody.dividends || dbody.data || [];
+      hint.textContent = `✓ 取得完了（配当API: HTTP${dr.status} keys:[${dkeys}] n=${arr.length}）`;
     } catch(e) {
-      hint.textContent = `✓ 取得完了（配当APIエラー: ${e.message.slice(0,30)}）`;
+      hint.textContent = `✓ 取得完了（配当APIエラー: ${e.message.slice(0,40)}）`;
     }
     hint.className = 'hint ok';
     setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 8000);
