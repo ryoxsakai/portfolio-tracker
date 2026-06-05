@@ -299,6 +299,13 @@ body::after{z-index:-1;background:
 .div-det-meta{font-size:11px;color:var(--text3);margin-top:2px;}
 .div-det-amt{font-size:14px;font-weight:800;color:var(--pos);font-family:'Inter',sans-serif;flex-shrink:0;}
 .div-no-data{padding:32px 20px;text-align:center;color:var(--text3);font-size:13px;}
+
+/* ── Tag chips ── */
+.tag-chip-row{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;}
+.tag-chip{font-size:11px;font-weight:700;padding:5px 13px;border-radius:20px;border:none;background:rgba(255,255,255,.76);color:#697a98;cursor:pointer;box-shadow:0 2px 8px rgba(74,101,170,.08);transition:.15s;white-space:nowrap;}
+.tag-chip.on{background:#6d73ff;color:#fff;box-shadow:0 4px 14px rgba(109,115,255,.32);}
+.tag-chip:active{transform:scale(.94);}
+.htag-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(109,115,255,.12);color:#6d73ff;margin-right:3px;margin-top:2px;}
 </style>
 </head>
 <body>
@@ -374,6 +381,7 @@ body::after{z-index:-1;background:
       <svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>
     </div>
   </div>
+  <div class="tag-chip-row" id="holdingsTagRow"></div>
   <div class="hlist" id="holdingsList"></div>
   <div style="height:12px"></div>
 </div>
@@ -397,6 +405,7 @@ body::after{z-index:-1;background:
   </div>
   <div id="portChartSection">
     <div class="donut-wrap"><svg id="portDonut" viewBox="0 0 220 220" width="220" height="220"></svg></div>
+    <div class="tag-chip-row" id="portTagRow" style="display:none"></div>
     <div class="pleg" id="portLeg"></div>
     <div style="height:12px"></div>
   </div>
@@ -495,7 +504,7 @@ body::after{z-index:-1;background:
   </div>
   <div class="ni" data-tab="holdings">
     <svg width="22" height="22" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="2" rx="1" fill="#9090aa"/><rect x="3" y="9" width="14" height="2" rx="1" fill="#9090aa"/><rect x="3" y="14" width="16" height="2" rx="1" fill="#9090aa"/><rect x="3" y="19" width="10" height="2" rx="1" fill="#9090aa"/></svg>
-    <div class="ni-lbl">マーケット</div>
+    <div class="ni-lbl">保有銘柄</div>
   </div>
   <div class="ni fab-ni" id="fabNi">
     <button class="fab-circle" id="fabBtn">＋</button>
@@ -537,6 +546,7 @@ body::after{z-index:-1;background:
         <div class="ff"><label class="fl">予想配当 (円/株)</label><input class="fi" type="number" id="fDiv" step="0.01" min="0" inputmode="decimal" placeholder="0"></div>
         <div class="ff"><label class="fl">配当月 (例: 3 9)</label><input class="fi" type="text" id="fDivM" placeholder="3 9"></div>
       </div>
+      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="fTags" placeholder="配当株 優待株 高配当 …" autocomplete="off"></div>
       <button class="btn-p" id="addConfirm">追加する</button>
       <button class="btn-s" id="addCancel">キャンセル</button>
     </div>
@@ -569,6 +579,7 @@ body::after{z-index:-1;background:
         <div class="ff"><label class="fl">予想配当 (円/株)</label><input class="fi" type="number" id="eFDiv" step="0.01" min="0" inputmode="decimal"></div>
         <div class="ff"><label class="fl">配当月 (例: 3 9)</label><input class="fi" type="text" id="eFDivM"></div>
       </div>
+      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="eFTags" autocomplete="off"></div>
       <button class="btn-p" id="editConfirm">保存する</button>
       <button class="btn-d" id="editDelete">この銘柄を削除</button>
       <button class="btn-s" id="editCancel">キャンセル</button>
@@ -662,7 +673,9 @@ let plMode        = 'today';
 let searchQuery   = '';
 let marketCache   = null;
 let marketCacheAt = 0;
-let selectedDivMonth = null;
+let selectedDivMonth   = null;
+let holdingsTagFilter  = null;
+let portfolioTagFilter = null;
 
 // ── Load / Save ──
 function loadJSON(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; } }
@@ -678,7 +691,7 @@ function loadStocks() {
   return [];
 }
 function mkStock(code, name, buyPrice, currentPrice, shares, extra) {
-  return Object.assign({ id: uid(), code, name, buyPrice, currentPrice, shares, sector:'', cyclicality:'', account:'', annualDividend:0, dividendMonths:[] }, extra||{});
+  return Object.assign({ id: uid(), code, name, buyPrice, currentPrice, shares, sector:'', cyclicality:'', account:'', annualDividend:0, dividendMonths:[], tags:[] }, extra||{});
 }
 function uid() { return Math.random().toString(36).slice(2,11); }
 function saveStocks() { localStorage.setItem(SK, JSON.stringify(stocks)); }
@@ -966,14 +979,31 @@ function renderWatchList() {
 // ── Render Holdings ──
 function renderHoldings() {
   const el = document.getElementById('holdingsList');
+
+  // ── Tag chip row ──
+  const allTags = [...new Set(stocks.flatMap(s => s.tags||[]))].sort();
+  buildTagChips('holdingsTagRow', allTags, holdingsTagFilter, tag => {
+    holdingsTagFilter = tag;
+    renderHoldings();
+  });
+
   if (!stocks.length) {
     el.innerHTML = '<div class="empty"><div class="empty-ico">📊</div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
     return;
   }
-  const sorted = [...stocks].sort((a,b) => b.currentPrice*b.shares - a.currentPrice*a.shares);
+
+  const base = [...stocks].sort((a,b) => b.currentPrice*b.shares - a.currentPrice*a.shares);
+  const sorted = holdingsTagFilter ? base.filter(s => (s.tags||[]).includes(holdingsTagFilter)) : base;
+
+  if (!sorted.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🏷</div><div class="empty-t">「${esc(holdingsTagFilter)}」の銘柄はありません</div></div>`;
+    return;
+  }
+
   el.innerHTML = sorted.map((s, i) => {
     const r = plRate(s), pl = (s.currentPrice - s.buyPrice) * s.shares, val = s.currentPrice * s.shares;
     const ip = r > cfg.profitLine, il = r < cfg.lossLine;
+    const tagBadges = (s.tags||[]).map(t => `<span class="htag-badge">${esc(t)}</span>`).join('');
     const badges = [
       s.account     ? `<span class="badge nisa">${esc(s.account)}</span>` : '',
       s.cyclicality ? `<span class="badge ${cycClass(s.cyclicality)}">${esc(s.cyclicality)}</span>` : '',
@@ -989,7 +1019,7 @@ function renderHoldings() {
         <div>
           <div class="hname">${esc(s.name)}</div>
           <div class="hcode">${s.code||'—'}${s.sector?' · '+esc(s.sector):''}</div>
-          <div class="badges">${badges}</div>
+          <div class="badges">${badges}${tagBadges}</div>
         </div>
         <div class="hpl">
           <div class="hpl-val ${pl>=0?'pos':'neg'}">${fmtPL(pl)}</div>
@@ -1108,6 +1138,20 @@ function renderDividendView() {
   renderDivMonthDetail(selectedDivMonth);
 }
 
+// ── Tag chip builder ──
+function buildTagChips(containerId, allTags, currentFilter, onSelect) {
+  const row = document.getElementById(containerId);
+  if (!row) return;
+  if (!allTags.length) { row.innerHTML = ''; row.style.display = 'none'; return; }
+  row.style.display = '';
+  row.innerHTML =
+    `<button class="tag-chip${currentFilter === null ? ' on' : ''}" data-tag="">すべて</button>` +
+    allTags.map(t => `<button class="tag-chip${currentFilter === t ? ' on' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('');
+  row.querySelectorAll('.tag-chip').forEach(btn => {
+    btn.addEventListener('click', () => onSelect(btn.dataset.tag || null));
+  });
+}
+
 // ── Render Portfolio ──
 function renderPortfolio() {
   const tv = totalValue(), tpl = totalPL(), tc = totalCost();
@@ -1122,14 +1166,28 @@ function renderPortfolio() {
   if (isDivView) {
     renderDividendView();
   } else {
-    drawDonut('portDonut', groupBy(portfolioView));
-    renderPortLegend(groupBy(portfolioView), tv);
+    // Tag chips — only in individual view
+    const allTags = [...new Set(stocks.flatMap(s => s.tags||[]))].sort();
+    const tagRow  = document.getElementById('portTagRow');
+    if (portfolioView === 'individual') {
+      buildTagChips('portTagRow', allTags, portfolioTagFilter, tag => {
+        portfolioTagFilter = tag;
+        renderPortfolio();
+      });
+    } else {
+      if (tagRow) { tagRow.innerHTML = ''; tagRow.style.display = 'none'; }
+      portfolioTagFilter = null;
+    }
+    const entries = groupBy(portfolioView, portfolioView === 'individual' ? portfolioTagFilter : null);
+    drawDonut('portDonut', entries);
+    renderPortLegend(entries, entries.reduce((s,[,v])=>s+v, 0) || tv);
   }
 }
 
-function groupBy(view) {
+function groupBy(view, tagFilter) {
   const g = {};
-  stocks.forEach(s => {
+  const src = tagFilter ? stocks.filter(s => (s.tags||[]).includes(tagFilter)) : stocks;
+  src.forEach(s => {
     const k = (view==='sector'?s.sector : view==='cyclicality'?s.cyclicality : view==='account'?s.account : s.name) || 'その他';
     g[k] = (g[k]||0) + s.currentPrice * s.shares;
   });
@@ -1279,7 +1337,7 @@ function stockColor(seed) {
 // ── Add modal ──
 function openAdd() {
   editingId = null;
-  ['fCode','fName','fBuy','fCur','fShares','fDiv','fDivM'].forEach(id => document.getElementById(id).value='');
+  ['fCode','fName','fBuy','fCur','fShares','fDiv','fDivM','fTags'].forEach(id => document.getElementById(id).value='');
   ['fAcc','fSec','fCyc'].forEach(id => document.getElementById(id).value='');
   document.getElementById('fetchHint').textContent='';
   document.getElementById('fetchHint').className='hint';
@@ -1302,6 +1360,7 @@ function openEdit(id) {
   document.getElementById('eFCyc').value    = s.cyclicality||'';
   document.getElementById('eFDiv').value    = s.annualDividend||'';
   document.getElementById('eFDivM').value   = (s.dividendMonths||[]).join(' ');
+  document.getElementById('eFTags').value   = (s.tags||[]).join(' ');
   document.getElementById('editFetchHint').textContent = '';
   document.getElementById('editFetchHint').className = 'hint';
   openModal('editModal');
@@ -1317,13 +1376,14 @@ function collectForm(p) {
   const buyPrice = parseFloat(g('Buy')), currentPrice = parseFloat(g('Cur'));
   const shares = parseInt(g('Shares'),10);
   const months = g('DivM').trim().split(/[\s,、]+/).map(Number).filter(n=>n>=1&&n<=12);
+  const tags   = g('Tags').trim().split(/[\s,、　]+/).map(t=>t.trim()).filter(Boolean);
   return {
     code: g('Code').trim().toUpperCase(),
     name: g('Name').trim(),
     buyPrice, currentPrice, shares,
     account: g('Acc'), sector: g('Sec'), cyclicality: g('Cyc'),
     annualDividend: parseFloat(document.getElementById(p+'Div').value)||0,
-    dividendMonths: months
+    dividendMonths: months, tags
   };
 }
 function validate(d) {
@@ -1693,7 +1753,8 @@ document.querySelectorAll('#tab-portfolio .pv-btn').forEach(b => b.addEventListe
   document.querySelectorAll('#tab-portfolio .pv-btn').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
   portfolioView = b.dataset.v || '';
-  selectedDivMonth = null;
+  selectedDivMonth   = null;
+  portfolioTagFilter = null;
   renderPortfolio();
 }));
 
@@ -1730,7 +1791,7 @@ document.getElementById('addClose').addEventListener('click', () => closeModal('
 document.getElementById('addCancel').addEventListener('click', () => closeModal('addModal'));
 document.getElementById('addConfirm').addEventListener('click', () => {
   const d = collectForm('f'); if (!validate(d)) return;
-  stocks.push(mkStock(d.code, d.name, d.buyPrice, d.currentPrice, d.shares, {sector:d.sector,cyclicality:d.cyclicality,account:d.account,annualDividend:d.annualDividend,dividendMonths:d.dividendMonths}));
+  stocks.push(mkStock(d.code, d.name, d.buyPrice, d.currentPrice, d.shares, {sector:d.sector,cyclicality:d.cyclicality,account:d.account,annualDividend:d.annualDividend,dividendMonths:d.dividendMonths,tags:d.tags}));
   saveStocks(); snapshot(); closeModal('addModal'); goTab('holdings');
 });
 
@@ -1740,7 +1801,7 @@ document.getElementById('editCancel').addEventListener('click', () => closeModal
 document.getElementById('editConfirm').addEventListener('click', () => {
   const s = stocks.find(x=>x.id===editingId); if (!s) return;
   const d = collectForm('eF'); if (!validate(d)) return;
-  Object.assign(s, { code:d.code, name:d.name, buyPrice:d.buyPrice, currentPrice:d.currentPrice, shares:d.shares, sector:d.sector, cyclicality:d.cyclicality, account:d.account, annualDividend:d.annualDividend, dividendMonths:d.dividendMonths });
+  Object.assign(s, { code:d.code, name:d.name, buyPrice:d.buyPrice, currentPrice:d.currentPrice, shares:d.shares, sector:d.sector, cyclicality:d.cyclicality, account:d.account, annualDividend:d.annualDividend, dividendMonths:d.dividendMonths, tags:d.tags });
   saveStocks(); snapshot(); closeModal('editModal'); renderTab(currentTab);
 });
 document.getElementById('editDelete').addEventListener('click', () => {
