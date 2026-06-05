@@ -657,7 +657,7 @@ body::after{z-index:-1;background:
 <script>
 // ── Keys ──
 const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token', JQ_MODE = 'jq_auth_mode',
-      TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1';
+      TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1', ACC_KEY = 'pt_last_acc_v1';
 const COLORS = ['#7B5EA7','#5B8DEF','#22C55E','#F59E0B','#EF4444','#06B6D4','#EC4899','#10B981','#8B5CF6','#F97316','#14B8A6','#6366F1','#84CC16','#E879F9','#FB923C'];
 
 // ── State ──
@@ -1338,7 +1338,8 @@ function stockColor(seed) {
 function openAdd() {
   editingId = null;
   ['fCode','fName','fBuy','fCur','fShares','fDiv','fDivM','fTags'].forEach(id => document.getElementById(id).value='');
-  ['fAcc','fSec','fCyc'].forEach(id => document.getElementById(id).value='');
+  ['fSec','fCyc'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('fAcc').value = localStorage.getItem(ACC_KEY) || '';
   document.getElementById('fetchHint').textContent='';
   document.getElementById('fetchHint').className='hint';
   openModal('addModal');
@@ -1409,6 +1410,7 @@ async function fetchYahoo(codes) {
         const c = q.symbol.replace(/\.T$/i,'').toUpperCase();
         map[c] = { name: q.shortName||q.longName||q.symbol, price: q.regularMarketPrice,
           dividendRate: q.dividendRate || q.trailingAnnualDividendRate || 0,
+          dividendYield: q.trailingAnnualDividendYield || q.dividendYield || 0,
           exDividendDate: q.exDividendDate || 0, payDate: q.payDate || 0 };
       });
       return map;
@@ -1615,7 +1617,7 @@ async function fetchJQMaster(code, apiKey) {
 
 async function fetchJQDividend(code, apiKey) {
   try {
-    const r = await jqFetch('/equities/dividends?code='+encodeURIComponent(code), apiKey);
+    const r = await jqFetch('/equities/dividends?code='+encodeURIComponent(jqCode(code)), apiKey);
     if (!r.ok) return null;
     const d = await r.json();
     const all = (d.data||[]).filter(x => x.RecordDate);
@@ -1686,7 +1688,12 @@ async function fetchAndFill(prefix) {
     if (divEl  && noVal(divEl)  && jqDiv.annualDiv > 0)  divEl.value  = jqDiv.annualDiv;
     if (divMEl && noVal(divMEl) && jqDiv.months.length)  divMEl.value = jqDiv.months.join(' ');
   } else if (q) {
-    if (divEl  && noVal(divEl)  && q.dividendRate > 0) divEl.value = q.dividendRate;
+    // dividendRate → trailingAnnualDividendRate → yield×price の順で推定
+    let estimatedDiv = q.dividendRate > 0 ? q.dividendRate : 0;
+    if (!estimatedDiv && q.dividendYield > 0 && q.price > 0) {
+      estimatedDiv = Math.round(q.dividendYield * q.price * 10) / 10;
+    }
+    if (divEl  && noVal(divEl)  && estimatedDiv > 0) divEl.value = estimatedDiv;
     if (divMEl && noVal(divMEl)) {
       const ms = inferDivMonths(q.exDividendDate, q.payDate);
       if (ms.length) divMEl.value = ms.join(' ');
@@ -1791,6 +1798,7 @@ document.getElementById('addClose').addEventListener('click', () => closeModal('
 document.getElementById('addCancel').addEventListener('click', () => closeModal('addModal'));
 document.getElementById('addConfirm').addEventListener('click', () => {
   const d = collectForm('f'); if (!validate(d)) return;
+  if (d.account) localStorage.setItem(ACC_KEY, d.account);
   stocks.push(mkStock(d.code, d.name, d.buyPrice, d.currentPrice, d.shares, {sector:d.sector,cyclicality:d.cyclicality,account:d.account,annualDividend:d.annualDividend,dividendMonths:d.dividendMonths,tags:d.tags}));
   saveStocks(); snapshot(); closeModal('addModal'); goTab('holdings');
 });
@@ -1801,6 +1809,7 @@ document.getElementById('editCancel').addEventListener('click', () => closeModal
 document.getElementById('editConfirm').addEventListener('click', () => {
   const s = stocks.find(x=>x.id===editingId); if (!s) return;
   const d = collectForm('eF'); if (!validate(d)) return;
+  if (d.account) localStorage.setItem(ACC_KEY, d.account);
   Object.assign(s, { code:d.code, name:d.name, buyPrice:d.buyPrice, currentPrice:d.currentPrice, shares:d.shares, sector:d.sector, cyclicality:d.cyclicality, account:d.account, annualDividend:d.annualDividend, dividendMonths:d.dividendMonths, tags:d.tags });
   saveStocks(); snapshot(); closeModal('editModal'); renderTab(currentTab);
 });
