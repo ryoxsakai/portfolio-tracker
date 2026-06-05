@@ -910,15 +910,19 @@ function closeDrop() {
 
 // ── Market data ──
 async function fetchMarketData() {
-  const syms = ['^N225','USDJPY=X'];
-  const str = syms.map(encodeURIComponent).join(',');
-  for (const base of ['https://query1.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=','https://query2.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=']) {
-    try {
-      const r = await fetch(base+str); if (!r.ok) continue;
-      const d = await r.json();
-      const list = d?.quoteResponse?.result;
-      if (list && list.length) return list;
-    } catch(e) {}
+  const syms = ['^N225', 'USDJPY=X'];
+  const encoded = syms.map(encodeURIComponent).join(',');
+  for (const host of ['query1', 'query2']) {
+    const apiUrl = `https://${host}.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=${encoded}`;
+    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const list = d?.quoteResponse?.result;
+        if (list && list.length) return list;
+      } catch(e) {}
+    }
   }
   return null;
 }
