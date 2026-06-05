@@ -1812,8 +1812,10 @@ async function fetchYahooDividend(code) {
         .sort((a, b) => a.ts - b.ts);
       if (!list.length) continue;
 
-      // 配当月: 各支払いの月をユニーク化
-      const months = [...new Set(list.map(x => new Date(x.ts * 1000).getMonth() + 1))].sort((a, b) => a - b);
+      // Yahoo の date は権利落ち日（ex-dividend date）≈ 権利確定月
+      // 日本株の支払いは約3ヶ月後なので +3 してから月一覧を作る
+      const addM = (m, n) => (m - 1 + n) % 12 + 1;
+      const months = [...new Set(list.map(x => addM(new Date(x.ts * 1000).getMonth() + 1, 3)))].sort((a, b) => a - b);
 
       // 年間配当: 直近約13ヶ月分の合計（≒年間支払額）
       const cutoff = Date.now() / 1000 - 400 * 86400;
