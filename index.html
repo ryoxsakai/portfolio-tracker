@@ -570,7 +570,7 @@ body::after{z-index:-1;background:
     <div class="mhd"><div class="mttl">銘柄を追加</div><button class="mclose" id="addClose">✕</button></div>
     <div class="mbody">
       <div class="frow">
-        <div class="ff"><label class="fl">銘柄コード</label><input class="fi" type="text" id="fCode" placeholder="7203" maxlength="6" autocomplete="off"><div class="hint" id="fetchHint"></div></div>
+        <div class="ff"><label class="fl">銘柄コード</label><input class="fi" type="text" id="fCode" placeholder="7203 / 0131103A" maxlength="12" autocomplete="off"><div class="hint" id="fetchHint"></div></div>
         <div class="ff"><label class="fl">銘柄名</label><input class="fi" type="text" id="fName" placeholder="自動取得"></div>
       </div>
       <div class="frow">
@@ -607,7 +607,7 @@ body::after{z-index:-1;background:
     <div class="mhd"><div class="mttl" id="editTitle">銘柄を編集</div><button class="mclose" id="editClose">✕</button></div>
     <div class="mbody">
       <div class="frow">
-        <div class="ff"><label class="fl">銘柄コード</label><input class="fi" type="text" id="eFCode" maxlength="6" autocomplete="off"><div class="hint" id="editFetchHint"></div></div>
+        <div class="ff"><label class="fl">銘柄コード</label><input class="fi" type="text" id="eFCode" maxlength="12" autocomplete="off"><div class="hint" id="editFetchHint"></div></div>
         <div class="ff"><label class="fl">銘柄名</label><input class="fi" type="text" id="eFName"></div>
       </div>
       <div class="frow">
@@ -1797,26 +1797,34 @@ function validate(d) {
   return true;
 }
 
+// 投資信託コード判定: 7桁数字 + 英数字1文字 (例: 0131103A)
+function isFundCode(code) {
+  return /^\d{7}[A-Z0-9]$/.test(code);
+}
+
 // ── Yahoo Finance ──
 async function fetchYahoo(codes) {
-  const syms = codes.map(c=>encodeURIComponent(c+'.T')).join(',');
-  for (const base of ['https://query1.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=','https://query2.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=']) {
-    try {
-      const res = await fetch(base+syms);
-      if (!res.ok) continue;
-      const data = await res.json();
-      const list = data?.quoteResponse?.result;
-      if (!list) continue;
-      const map={};
-      list.forEach(q => {
-        const c = q.symbol.replace(/\.T$/i,'').toUpperCase();
-        map[c] = { name: q.shortName||q.longName||q.symbol, price: q.regularMarketPrice,
-          dividendRate: q.dividendRate || q.trailingAnnualDividendRate || 0,
-          dividendYield: q.trailingAnnualDividendYield || q.dividendYield || 0,
-          exDividendDate: q.exDividendDate || 0, payDate: q.payDate || 0 };
-      });
-      return map;
-    } catch(e) { console.error('Yahoo:', e); }
+  const syms = codes.map(c => encodeURIComponent(c + '.T')).join(',');
+  for (const host of ['query1', 'query2']) {
+    const apiUrl = `https://${host}.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=${syms}`;
+    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        const list = data?.quoteResponse?.result;
+        if (!list) continue;
+        const map = {};
+        list.forEach(q => {
+          const c = q.symbol.replace(/\.T$/i, '').toUpperCase();
+          map[c] = { name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice,
+            dividendRate: q.dividendRate || q.trailingAnnualDividendRate || 0,
+            dividendYield: q.trailingAnnualDividendYield || q.dividendYield || 0,
+            exDividendDate: q.exDividendDate || 0, payDate: q.payDate || 0 };
+        });
+        return map;
+      } catch(e) { console.error('Yahoo:', e); }
+    }
   }
   return {};
 }
@@ -2270,10 +2278,11 @@ async function fetchAndFill(prefix) {
   const jqMode   = localStorage.getItem(JQ_MODE) || 'refresh';
   const jqStored = localStorage.getItem(JQK);
   const apiKey   = jqMode === 'apikey' ? jqStored : null;
+  const isFund   = isFundCode(code); // 投資信託は J-Quants 対象外
 
-  // 配当: JQ Bulk → JQ dividends API → Yahoo chart の順で試行
+  // 配当・分配金: 投資信託は Yahoo chart のみ / 株式は JQ Bulk → JQ dividends → Yahoo chart
   const divPromise = (async () => {
-    if (apiKey) {
+    if (!isFund && apiKey) {
       const bulk = await fetchJQBulkDividend(code, apiKey).catch(()=>null);
       if (bulk) return bulk;
       const jqd  = await fetchJQDividend(code, apiKey).catch(()=>null);
@@ -2282,10 +2291,10 @@ async function fetchAndFill(prefix) {
     return await fetchYahooDividend(code).catch(()=>null);
   })();
 
-  // 全ソースを並列取得
+  // 全ソースを並列取得（投資信託は J-Quants master をスキップ）
   const [yMap, jqMaster, jqDiv] = await Promise.all([
     fetchYahoo([code]).catch(() => ({})),
-    apiKey ? fetchJQMaster(code, apiKey).catch(()=>null) : Promise.resolve(null),
+    (!isFund && apiKey) ? fetchJQMaster(code, apiKey).catch(()=>null) : Promise.resolve(null),
     divPromise
   ]);
   const q = yMap[code];
@@ -2327,8 +2336,13 @@ async function fetchAndFill(prefix) {
     }
   }
 
-  // 株価が取れていない場合は J-Quants bars/daily にフォールバック
+  // 株価が取れていない場合のフォールバック
   if (!gotPrice) {
+    if (isFund) {
+      hint.textContent = '投資信託 — 基準価額・ファンド名は手動で入力してください';
+      hint.className = 'hint';
+      return;
+    }
     if (!apiKey) { hint.textContent = '設定からJ-Quants APIキーを登録してください'; hint.className = 'hint err'; return; }
     try {
       const c5 = jqCode(code);
