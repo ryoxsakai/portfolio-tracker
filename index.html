@@ -308,7 +308,8 @@ body::after{z-index:-1;background:
 .div-bar-hint{font-size:11px;color:var(--text3);font-weight:500;}
 #divBarCanvas{width:100%;display:block;cursor:pointer;}
 .div-detail{padding:0 14px;}
-.div-detail-hd{font-size:12px;font-weight:700;color:#7f8faf;text-transform:uppercase;letter-spacing:.04em;padding:10px 0 6px;}
+.div-detail-hd{font-size:12px;font-weight:700;color:#7f8faf;text-transform:uppercase;letter-spacing:.04em;padding:10px 0 6px;display:flex;align-items:baseline;justify-content:space-between;}
+.div-hd-total{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.01em;font-family:'Inter',sans-serif;text-transform:none;}
 .div-detail-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.82);border-radius:14px;margin-bottom:6px;box-shadow:0 2px 8px rgba(74,101,170,.06);}
 .div-det-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
 .div-det-info{flex:1;min-width:0;}
@@ -1435,7 +1436,10 @@ function renderDivMonthDetail(month) {
     return;
   }
   const label = month ? month + '月の配当内訳' : '全配当銘柄';
-  el.innerHTML = `<div class="div-detail-hd">${esc(label)}</div>` +
+  const monthTotal = divStocks.reduce((sum, s) => {
+    return sum + (month ? (s.annualDividend * s.shares) / s.dividendMonths.length : s.annualDividend * s.shares);
+  }, 0);
+  el.innerHTML = `<div class="div-detail-hd"><span>${esc(label)}</span><span class="div-hd-total">${fmtY(monthTotal)}</span></div>` +
     divStocks.map((s, i) => {
       const amt = month
         ? (s.annualDividend * s.shares) / s.dividendMonths.length
