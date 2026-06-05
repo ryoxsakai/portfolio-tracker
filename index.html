@@ -1710,6 +1710,8 @@ function stockColor(seed) {
 }
 
 // ── Tag suggest ──
+const PRESET_TAGS = ['高配当','配当株','優待株','成長株','割安株','NISA','iDeCo','国内株','米国株','ETF','インデックス','長期保有','コア','サテライト','銀行','保険','商社','インフラ','メーカー'];
+
 function renderTagSuggest(inputId, suggestId) {
   const input   = document.getElementById(inputId);
   const suggest = document.getElementById(suggestId);
@@ -1717,7 +1719,13 @@ function renderTagSuggest(inputId, suggestId) {
   const current = new Set(
     input.value.trim().split(/[\s,、　]+/).map(t => t.trim()).filter(Boolean)
   );
-  const avail = [...new Set(stocks.flatMap(s => s.tags || []))].sort()
+  const userTags = [...new Set(stocks.flatMap(s => s.tags || []))];
+  const avail = [...new Set([...userTags, ...PRESET_TAGS])]
+    .sort((a, b) => {
+      const au = userTags.includes(a), bu = userTags.includes(b);
+      if (au !== bu) return au ? -1 : 1; // ユーザータグを先頭に
+      return a.localeCompare(b, 'ja');
+    })
     .filter(t => !current.has(t));
   if (!avail.length) { suggest.innerHTML = ''; return; }
   suggest.innerHTML = avail.map(t => `<button type="button" class="tsug">${esc(t)}</button>`).join('');
