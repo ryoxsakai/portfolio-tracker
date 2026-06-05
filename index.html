@@ -203,6 +203,9 @@ body{background:linear-gradient(160deg,#f0f0ff 0%,#e8eaf6 40%,#f5f0ff 100%);min-
 .fl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block}
 .fi{width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;font-size:15px;font-family:inherit;color:var(--text);outline:none;transition:border-color .2s}
 .fi:focus{border-color:var(--accent)}
+.tag-suggest{display:flex;flex-wrap:wrap;gap:5px;padding:6px 0 0;min-height:0}
+.tsug{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;transition:.15s;white-space:nowrap;font-family:inherit}
+.tsug:active{background:var(--accent);color:#fff}
 .fi[type=number]{font-family:'JetBrains Mono',monospace}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fsel{width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;font-size:15px;font-family:inherit;color:var(--text);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239090aa' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;transition:border-color .2s}
@@ -590,7 +593,7 @@ body::after{z-index:-1;background:
         <input type="hidden" id="fDivM">
         <div class="month-picker" id="fMonthPicker"></div>
       </div>
-      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="fTags" placeholder="配当株 優待株 高配当 …" autocomplete="off"></div>
+      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="fTags" placeholder="配当株 優待株 高配当 …" autocomplete="off"><div class="tag-suggest" id="fTagSuggest"></div></div>
       <button class="btn-p" id="addConfirm">追加する</button>
       <button class="btn-s" id="addCancel">キャンセル</button>
     </div>
@@ -627,7 +630,7 @@ body::after{z-index:-1;background:
         <input type="hidden" id="eFDivM">
         <div class="month-picker" id="eFMonthPicker"></div>
       </div>
-      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="eFTags" autocomplete="off"></div>
+      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="eFTags" autocomplete="off"><div class="tag-suggest" id="eFTagSuggest"></div></div>
       <button class="btn-p" id="editConfirm">保存する</button>
       <button class="btn-d" id="editDelete">この銘柄を削除</button>
       <button class="btn-s" id="editCancel">キャンセル</button>
@@ -1706,6 +1709,27 @@ function stockColor(seed) {
   return COLORS[Math.abs(h)%COLORS.length];
 }
 
+// ── Tag suggest ──
+function renderTagSuggest(inputId, suggestId) {
+  const input   = document.getElementById(inputId);
+  const suggest = document.getElementById(suggestId);
+  if (!input || !suggest) return;
+  const current = new Set(
+    input.value.trim().split(/[\s,、　]+/).map(t => t.trim()).filter(Boolean)
+  );
+  const avail = [...new Set(stocks.flatMap(s => s.tags || []))].sort()
+    .filter(t => !current.has(t));
+  if (!avail.length) { suggest.innerHTML = ''; return; }
+  suggest.innerHTML = avail.map(t => `<button type="button" class="tsug">${esc(t)}</button>`).join('');
+  suggest.querySelectorAll('.tsug').forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      const v = input.value;
+      input.value = (v && !v.endsWith(' ') ? v + ' ' : v) + avail[i] + ' ';
+      renderTagSuggest(inputId, suggestId);
+    });
+  });
+}
+
 // ── Add modal ──
 function openAdd() {
   editingId = null;
@@ -1715,6 +1739,7 @@ function openAdd() {
   document.getElementById('fAcc').value = localStorage.getItem(ACC_KEY) || '';
   document.getElementById('fetchHint').textContent='';
   document.getElementById('fetchHint').className='hint';
+  renderTagSuggest('fTags', 'fTagSuggest');
   openModal('addModal');
   setTimeout(()=>document.getElementById('fCode').focus(), 300);
 }
@@ -1737,6 +1762,7 @@ function openEdit(id) {
   document.getElementById('eFTags').value   = (s.tags||[]).join(' ');
   document.getElementById('editFetchHint').textContent = '';
   document.getElementById('editFetchHint').className = 'hint';
+  renderTagSuggest('eFTags', 'eFTagSuggest');
   openModal('editModal');
   // 名前がコードのままなら自動で再取得
   if (s.code && (!s.name || s.name === s.code)) {
@@ -2421,6 +2447,8 @@ document.querySelectorAll('.sort-sheet-btn[data-sort]').forEach(b => {
 document.getElementById('sortCancelBtn').addEventListener('click', () => closeModal('sortModal'));
 
 // ── Events: add modal ──
+document.getElementById('fTags').addEventListener('input', () => renderTagSuggest('fTags', 'fTagSuggest'));
+document.getElementById('eFTags').addEventListener('input', () => renderTagSuggest('eFTags', 'eFTagSuggest'));
 document.getElementById('fCode').addEventListener('blur', () => fetchAndFill('f'));
 document.getElementById('fCode').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();fetchAndFill('f').then(()=>document.getElementById('fBuy').focus());} });
 document.getElementById('eFCode').addEventListener('blur', () => fetchAndFill('eF'));
