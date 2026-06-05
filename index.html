@@ -1955,6 +1955,38 @@ async function fetchJQDividend(code, apiKey) {
   } catch(e) { return null; }
 }
 
+// /fins/statements を使った配当情報取得（より確実）
+async function fetchJQStatement(code, apiKey) {
+  try {
+    const r = await jqFetch('/fins/statements?code=' + encodeURIComponent(jqCode(code)), apiKey);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const all = d.statements || d.data || [];
+    if (!all.length) return null;
+
+    // DisclosedDate 降順でソート→最新レコードを取得
+    all.sort((a, b) => (b.DisclosedDate || '').localeCompare(a.DisclosedDate || ''));
+    const latest = all[0];
+
+    // CurrentPeriodEndDate の月から期末配当月・中間配当月を導出
+    const endDate = latest.CurrentPeriodEndDate || '';
+    let months = [];
+    if (endDate) {
+      const endMonth = new Date(endDate).getMonth() + 1;
+      const midMonth = ((endMonth - 1 + 6) % 12) + 1;
+      months = [endMonth, midMonth].sort((a, b) => a - b);
+    }
+
+    // 予想年間配当、なければ実績年間配当
+    const fv = parseFloat(latest.ForecastDividendPerShareAnnual);
+    const rv = parseFloat(latest.ResultDividendPerShareAnnual);
+    const annualDiv = (!isNaN(fv) && fv > 0) ? fv : (!isNaN(rv) && rv > 0) ? rv : 0;
+
+    if (!annualDiv && !months.length) return null;
+    return { annualDiv, months };
+  } catch(e) { console.warn('JQStatement', e); return null; }
+}
+
 async function fetchAndFill(prefix) {
   prefix = prefix || 'f';
   const hintId = prefix === 'eF' ? 'editFetchHint' : 'fetchHint';
@@ -1975,11 +2007,17 @@ async function fetchAndFill(prefix) {
   const jqStored = localStorage.getItem(JQK);
   const apiKey   = jqMode === 'apikey' ? jqStored : null;
 
+  // 配当: /fins/statements 優先 → /equities/dividends フォールバック
+  const divPromise = apiKey
+    ? fetchJQStatement(code, apiKey).catch(()=>null)
+        .then(r => r || fetchJQDividend(code, apiKey).catch(()=>null))
+    : Promise.resolve(null);
+
   // 全ソースを並列取得
   const [yMap, jqMaster, jqDiv] = await Promise.all([
     fetchYahoo([code]).catch(() => ({})),
     apiKey ? fetchJQMaster(code, apiKey).catch(()=>null) : Promise.resolve(null),
-    apiKey ? fetchJQDividend(code, apiKey).catch(()=>null) : Promise.resolve(null)
+    divPromise
   ]);
   const q = yMap[code];
 
