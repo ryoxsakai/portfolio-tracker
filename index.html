@@ -693,6 +693,7 @@ body::after{z-index:-1;background:
       </div>
       <div class="detail-period-lbl" id="detailPeriodLbl"></div>
       <div class="detail-period-row">
+        <button class="detail-per-btn" data-p="1d">1日</button>
         <button class="detail-per-btn" data-p="1w">1週</button>
         <button class="detail-per-btn on" data-p="1m">1ヶ月</button>
         <button class="detail-per-btn" data-p="3m">3ヶ月</button>
@@ -1034,7 +1035,7 @@ function renderWatchList() {
 
 // ── Stock detail / chart ──
 async function fetchJQChart(code, daysFrom) {
-  const apiKey = localStorage.getItem(JQK);
+  const apiKey = (localStorage.getItem(JQ_MODE)||'refresh') === 'apikey' ? localStorage.getItem(JQK) : null;
   if (!apiKey) return null;
   try {
     const c5 = jqCode(code);
@@ -1055,7 +1056,38 @@ async function fetchJQChart(code, daysFrom) {
   } catch(e) { console.warn('JQChart', e); return null; }
 }
 
-function drawStockChart(canvas, pts) {
+async function fetchJQIntraday(code) {
+  const apiKey = (localStorage.getItem(JQ_MODE)||'refresh') === 'apikey' ? localStorage.getItem(JQK) : null;
+  if (!apiKey) return null;
+  const c5 = jqCode(code);
+  for (let d = 0; d <= 5; d++) {
+    try {
+      const r = await jqFetch(
+        `/equities/bars/intraday?code=${encodeURIComponent(c5)}&date=${jqDate(d)}`,
+        apiKey
+      );
+      if (!r.ok) continue;
+      const data = await r.json();
+      const items = (data.data || []).sort((a,b) =>
+        (a.DateTime||a.Time||'').localeCompare(b.DateTime||b.Time||''));
+      if (!items.length) continue;
+      return items.map(x => {
+        const dt = x.DateTime || x.Time || '';
+        const time = dt.includes('T') ? dt.slice(11,16) : dt.slice(0,5);
+        return {
+          time, date: dt,
+          c: x.AdjC ?? x.C ?? x.Close ?? x.close ?? 0,
+          o: x.AdjO ?? x.O ?? x.Open  ?? x.open  ?? 0,
+          h: x.AdjH ?? x.H ?? x.High  ?? x.high  ?? 0,
+          l: x.AdjL ?? x.L ?? x.Low   ?? x.low   ?? 0,
+        };
+      }).filter(p => p.c > 0);
+    } catch(e) { console.warn('JQIntraday d='+d, e); }
+  }
+  return null;
+}
+
+function drawStockChart(canvas, pts, isIntraday) {
   if (!canvas || !pts || !pts.length) return;
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.parentElement.clientWidth || 320, H = 180;
@@ -1115,11 +1147,13 @@ function drawStockChart(canvas, pts) {
   ctx.beginPath(); ctx.arc(lx,ly,3.5,0,Math.PI*2); ctx.fillStyle = color; ctx.fill();
   ctx.beginPath(); ctx.arc(lx,ly,2,0,Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
 
-  // Date labels (pts[i].date = "YYYY-MM-DD")
+  // Date/time labels
   ctx.fillStyle = '#7f8faf'; ctx.textAlign = 'center';
   const step = Math.max(1, Math.floor(pts.length/5));
   for (let i=0; i<pts.length; i+=step) {
-    const lbl = (pts[i].date || '').slice(5).replace('-', '/'); // "MM/DD"
+    const lbl = isIntraday
+      ? (pts[i].time || '').slice(0,5)
+      : (pts[i].date || '').slice(5).replace('-', '/');
     ctx.fillText(lbl, Math.min(Math.max(xp(i),22), W-pad.r-14), H-7);
   }
 }
@@ -1162,7 +1196,8 @@ async function loadDetailChart() {
   const hint   = document.getElementById('detailChartHint');
   const canvas = document.getElementById('detailChart');
 
-  if (!localStorage.getItem(JQK)) {
+  const apiKeyForChart = (localStorage.getItem(JQ_MODE)||'refresh') === 'apikey' ? localStorage.getItem(JQK) : null;
+  if (!apiKeyForChart) {
     hint.textContent = 'チャートにはJ-Quants APIキーが必要です（設定から登録）';
     hint.classList.add('on');
     return;
@@ -1171,7 +1206,10 @@ async function loadDetailChart() {
   hint.textContent = '取得中…'; hint.classList.add('on');
   canvas.style.opacity = '.25';
 
-  const pts = await fetchJQChart(s.code, CHART_PERIODS[detailPeriod]);
+  const isIntraday = detailPeriod === '1d';
+  const pts = isIntraday
+    ? await fetchJQIntraday(s.code)
+    : await fetchJQChart(s.code, CHART_PERIODS[detailPeriod]);
   hint.classList.remove('on');
   canvas.style.opacity = '1';
 
@@ -1180,7 +1218,7 @@ async function loadDetailChart() {
     hint.classList.add('on');
     return;
   }
-  drawStockChart(canvas, pts);
+  drawStockChart(canvas, pts, isIntraday);
 
   const first = pts[0]?.c, last = pts[pts.length-1]?.c;
   if (first && last) {
@@ -1873,13 +1911,15 @@ async function fetchAndFill(prefix) {
   const noVal = el => !el || !el.value;
   const shouldUpdateName  = () => !nameEl.value || nameEl.value.toUpperCase() === code;
   const shouldUpdatePrice = () => !curEl.value || curEl.value === '0';
-  const apiKey = localStorage.getItem(JQK);
+  const jqMode   = localStorage.getItem(JQ_MODE) || 'refresh';
+  const jqStored = localStorage.getItem(JQK);
+  const apiKey   = jqMode === 'apikey' ? jqStored : null;
 
   // 全ソースを並列取得
   const [yMap, jqMaster, jqDiv] = await Promise.all([
     fetchYahoo([code]).catch(() => ({})),
-    apiKey ? fetchJQMaster(code, apiKey) : Promise.resolve(null),
-    apiKey ? fetchJQDividend(code, apiKey) : Promise.resolve(null)
+    apiKey ? fetchJQMaster(code, apiKey).catch(()=>null) : Promise.resolve(null),
+    apiKey ? fetchJQDividend(code, apiKey).catch(()=>null) : Promise.resolve(null)
   ]);
   const q = yMap[code];
 
