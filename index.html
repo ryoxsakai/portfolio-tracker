@@ -122,6 +122,10 @@ body{background:linear-gradient(160deg,#f0f0ff 0%,#e8eaf6 40%,#f5f0ff 100%);min-
 .sort-sheet-btn.active{color:var(--accent);font-weight:700}
 .sort-sheet-btn.cancel{color:#dc2626}
 .sort-sheet-sep{height:1px;background:var(--border);margin:0 4px}
+.month-picker{display:flex;flex-wrap:wrap;gap:5px;padding:4px 0}
+.mpick{flex:0 0 calc(100%/6 - 5px);padding:8px 0;font-size:13px;font-weight:500;border-radius:8px;border:1.5px solid var(--border);background:var(--input-bg);color:var(--text2);cursor:pointer;text-align:center;transition:.15s;font-family:inherit}
+.mpick.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mpick:active{opacity:.7}
 .hlist{padding:0 14px;display:flex;flex-direction:column;gap:10px}
 
 /* ── Holding card ── */
@@ -579,7 +583,11 @@ body::after{z-index:-1;background:
       </div>
       <div class="frow">
         <div class="ff"><label class="fl">予想配当 (円/株)</label><input class="fi" type="number" id="fDiv" step="0.01" min="0" inputmode="decimal" placeholder="0"></div>
-        <div class="ff"><label class="fl">配当月 (例: 3 9)</label><input class="fi" type="text" id="fDivM" placeholder="3 9"></div>
+      </div>
+      <div class="ff">
+        <label class="fl">配当月</label>
+        <input type="hidden" id="fDivM">
+        <div class="month-picker" id="fMonthPicker"></div>
       </div>
       <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="fTags" placeholder="配当株 優待株 高配当 …" autocomplete="off"></div>
       <button class="btn-p" id="addConfirm">追加する</button>
@@ -612,7 +620,11 @@ body::after{z-index:-1;background:
       </div>
       <div class="frow">
         <div class="ff"><label class="fl">予想配当 (円/株)</label><input class="fi" type="number" id="eFDiv" step="0.01" min="0" inputmode="decimal"></div>
-        <div class="ff"><label class="fl">配当月 (例: 3 9)</label><input class="fi" type="text" id="eFDivM"></div>
+      </div>
+      <div class="ff">
+        <label class="fl">配当月</label>
+        <input type="hidden" id="eFDivM">
+        <div class="month-picker" id="eFMonthPicker"></div>
       </div>
       <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="eFTags" autocomplete="off"></div>
       <button class="btn-p" id="editConfirm">保存する</button>
@@ -1651,7 +1663,8 @@ function stockColor(seed) {
 // ── Add modal ──
 function openAdd() {
   editingId = null;
-  ['fCode','fName','fBuy','fCur','fShares','fDiv','fDivM','fTags'].forEach(id => document.getElementById(id).value='');
+  ['fCode','fName','fBuy','fCur','fShares','fDiv','fTags'].forEach(id => document.getElementById(id).value='');
+  setMonthPicker('fMonthPicker', []);
   ['fSec','fCyc'].forEach(id => document.getElementById(id).value='');
   document.getElementById('fAcc').value = localStorage.getItem(ACC_KEY) || '';
   document.getElementById('fetchHint').textContent='';
@@ -1674,7 +1687,7 @@ function openEdit(id) {
   document.getElementById('eFSec').value    = s.sector||'';
   document.getElementById('eFCyc').value    = s.cyclicality||'';
   document.getElementById('eFDiv').value    = s.annualDividend||'';
-  document.getElementById('eFDivM').value   = (s.dividendMonths||[]).join(' ');
+  setMonthPicker('eFMonthPicker', s.dividendMonths||[]);
   document.getElementById('eFTags').value   = (s.tags||[]).join(' ');
   document.getElementById('editFetchHint').textContent = '';
   document.getElementById('editFetchHint').className = 'hint';
@@ -1943,6 +1956,41 @@ const SEC_CYC = {
 };
 function mapS33(s33nm) { return S33_MAP[s33nm] || ''; }
 function mapCyc(sector) { return SEC_CYC[sector] || ''; }
+function buildMonthPicker(pickerId, inputId) {
+  const container = document.getElementById(pickerId);
+  if (!container || container.children.length) return;
+  for (let m = 1; m <= 12; m++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mpick';
+    btn.dataset.month = m;
+    btn.textContent = m + '月';
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('on');
+      const months = [...container.querySelectorAll('.mpick.on')]
+        .map(b => parseInt(b.dataset.month)).sort((a,b) => a-b);
+      document.getElementById(inputId).value = months.join(' ');
+    });
+    container.appendChild(btn);
+  }
+}
+
+function setMonthPicker(pickerId, months) {
+  const inputId = pickerId === 'fMonthPicker' ? 'fDivM' : 'eFDivM';
+  buildMonthPicker(pickerId, inputId);
+  document.querySelectorAll('#' + pickerId + ' .mpick').forEach(b => {
+    b.classList.toggle('on', months.includes(parseInt(b.dataset.month)));
+  });
+  document.getElementById(inputId).value = months.slice().sort((a,b)=>a-b).join(' ');
+}
+
+function syncPickerFromHidden(inputId) {
+  const pickerId = inputId === 'fDivM' ? 'fMonthPicker' : 'eFMonthPicker';
+  const val = document.getElementById(inputId)?.value || '';
+  const months = val.trim().split(/[\s,、]+/).map(Number).filter(n=>n>=1&&n<=12);
+  setMonthPicker(pickerId, months);
+}
+
 function inferDivMonths(exDivTs, payDateTs) {
   const addM = (m, n) => (m - 1 + n) % 12 + 1;
   if (!exDivTs && !payDateTs) return [];
@@ -2184,7 +2232,7 @@ async function fetchAndFill(prefix) {
   let gotDiv = false;
   if (jqDiv) {
     if (divEl  && noVal(divEl)  && jqDiv.annualDiv > 0) { divEl.value  = jqDiv.annualDiv; gotDiv = true; }
-    if (divMEl && noVal(divMEl) && jqDiv.months.length) { divMEl.value = jqDiv.months.join(' '); gotDiv = true; }
+    if (divMEl && noVal(divMEl) && jqDiv.months.length) { divMEl.value = jqDiv.months.join(' '); syncPickerFromHidden(divMEl.id); gotDiv = true; }
   } else if (q) {
     // dividendRate → trailingAnnualDividendRate → yield×price の順で推定
     let estimatedDiv = q.dividendRate > 0 ? q.dividendRate : 0;
@@ -2194,7 +2242,7 @@ async function fetchAndFill(prefix) {
     if (divEl  && noVal(divEl)  && estimatedDiv > 0) { divEl.value = estimatedDiv; gotDiv = true; }
     if (divMEl && noVal(divMEl)) {
       const ms = inferDivMonths(q.exDividendDate, q.payDate);
-      if (ms.length) { divMEl.value = ms.join(' '); gotDiv = true; }
+      if (ms.length) { divMEl.value = ms.join(' '); syncPickerFromHidden(divMEl.id); gotDiv = true; }
     }
     if (!apiKey && !gotDiv) {
       hint.textContent = '配当情報はJ-Quants APIキーが必要です（設定から登録）';
