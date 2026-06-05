@@ -1733,22 +1733,38 @@ async function fetchYahoo(codes) {
   return {};
 }
 
-// Yahoo Finance quoteSummary で配当情報を取得（quoteSummaryはdividendRateが充実）
+// Yahoo Finance v8 chart の配当イベント（events=div）から配当情報を取得
+// quoteSummary はcrumb認証が必要でブラウザから不可。chartエンドポイントは認証不要。
+// CORS回避のためJ-Quantsと同じプロキシ経由でアクセス。
 async function fetchYahooDividend(code) {
-  const sym = encodeURIComponent(code + '.T');
-  const modules = 'summaryDetail,calendarEvents';
-  for (const host of ['query1.finance.yahoo.com', 'query2.finance.yahoo.com']) {
+  const sym  = encodeURIComponent(code + '.T');
+  const yurl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2y&events=div`;
+  for (const url of [JQ_PROXY + encodeURIComponent(yurl), yurl]) {
     try {
-      const r = await fetch(`https://${host}/v10/finance/quoteSummary/${sym}?modules=${modules}`);
+      const r = await fetch(url);
       if (!r.ok) continue;
       const d = await r.json();
-      const res = d?.quoteSummary?.result?.[0];
-      if (!res) continue;
-      const sd = res.summaryDetail || {};
-      const annualDiv = sd.dividendRate?.raw || sd.trailingAnnualDividendRate?.raw || 0;
-      const exDivTs   = sd.exDividendDate?.raw || 0;
-      const payTs     = res.calendarEvents?.dividendDate?.raw || 0;
-      const months    = inferDivMonths(exDivTs, payTs);
+      const divs = d?.chart?.result?.[0]?.events?.dividends;
+      if (!divs) continue;
+      // {ts: {amount, date}} → 配列化して日付昇順
+      const list = Object.values(divs)
+        .map(x => ({ amount: Number(x.amount) || 0, ts: Number(x.date) || 0 }))
+        .filter(x => x.amount > 0 && x.ts > 0)
+        .sort((a, b) => a.ts - b.ts);
+      if (!list.length) continue;
+
+      // 配当月: 各支払いの月をユニーク化
+      const months = [...new Set(list.map(x => new Date(x.ts * 1000).getMonth() + 1))].sort((a, b) => a - b);
+
+      // 年間配当: 直近約13ヶ月分の合計（≒年間支払額）
+      const cutoff = Date.now() / 1000 - 400 * 86400;
+      let annualDiv = list.filter(x => x.ts >= cutoff).reduce((s, x) => s + x.amount, 0);
+      // 直近13ヶ月にデータがなければ、年あたり支払回数 × 直近1回分で概算
+      if (!annualDiv) {
+        const perYear = months.length || 1;
+        annualDiv = list[list.length - 1].amount * perYear;
+      }
+      annualDiv = Math.round(annualDiv * 100) / 100;
       if (!annualDiv && !months.length) continue;
       return { annualDiv, months };
     } catch(e) { console.warn('YahooDividend', e); }
