@@ -754,7 +754,7 @@ body::after{z-index:-1;background:
 <script>
 // ── Keys ──
 const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token', JQ_MODE = 'jq_auth_mode',
-      TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1', ACC_KEY = 'pt_last_acc_v1';
+      TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1', ACC_KEY = 'pt_last_acc_v1', SORT_KEY = 'pt_holdings_sort_v1';
 const COLORS = ['#7B5EA7','#5B8DEF','#22C55E','#F59E0B','#EF4444','#06B6D4','#EC4899','#10B981','#8B5CF6','#F97316','#14B8A6','#6366F1','#84CC16','#E879F9','#FB923C'];
 
 // ── State ──
@@ -772,8 +772,9 @@ let marketCache   = null;
 let marketCacheAt = 0;
 let selectedDivMonth   = null;
 let holdingsTagFilter  = null;
-let holdingsSortKey    = 'default';
-let holdingsSortAsc    = false;
+const _sortCfg      = loadJSON(SORT_KEY, { key: 'default', asc: false });
+let holdingsSortKey = _sortCfg.key || 'default';
+let holdingsSortAsc = !!_sortCfg.asc;
 let portfolioTagFilter = null;
 let detailStockId      = null;
 let detailPeriod       = '1m';
@@ -1959,8 +1960,14 @@ async function fetchJQDividend(code, apiKey) {
 async function fetchJQStatement(code, apiKey) {
   try {
     const r = await jqFetch('/fins/statements?code=' + encodeURIComponent(jqCode(code)), apiKey);
-    if (!r.ok) return null;
+    if (!r.ok) {
+      let body = '';
+      try { body = JSON.stringify(await r.json()); } catch(e2) {}
+      console.warn('JQStatement HTTP', r.status, body);
+      return null;
+    }
     const d = await r.json();
+    console.log('JQStatement raw keys:', Object.keys(d), 'count:', (d.statements||d.data||[]).length);
     const all = d.statements || d.data || [];
     if (!all.length) return null;
 
@@ -1981,6 +1988,7 @@ async function fetchJQStatement(code, apiKey) {
     const fv = parseFloat(latest.ForecastDividendPerShareAnnual);
     const rv = parseFloat(latest.ResultDividendPerShareAnnual);
     const annualDiv = (!isNaN(fv) && fv > 0) ? fv : (!isNaN(rv) && rv > 0) ? rv : 0;
+    console.log('JQStatement latest:', latest.DisclosedDate, 'endDate:', endDate, 'months:', months, 'fv:', latest.ForecastDividendPerShareAnnual, 'rv:', latest.ResultDividendPerShareAnnual, '→', annualDiv);
 
     if (!annualDiv && !months.length) return null;
     return { annualDiv, months };
@@ -2037,19 +2045,24 @@ async function fetchAndFill(prefix) {
   }
 
   // 配当（J-Quants dividends 優先、なければ Yahoo Finance で推定）
+  let gotDiv = false;
   if (jqDiv) {
-    if (divEl  && noVal(divEl)  && jqDiv.annualDiv > 0)  divEl.value  = jqDiv.annualDiv;
-    if (divMEl && noVal(divMEl) && jqDiv.months.length)  divMEl.value = jqDiv.months.join(' ');
+    if (divEl  && noVal(divEl)  && jqDiv.annualDiv > 0) { divEl.value  = jqDiv.annualDiv; gotDiv = true; }
+    if (divMEl && noVal(divMEl) && jqDiv.months.length) { divMEl.value = jqDiv.months.join(' '); gotDiv = true; }
   } else if (q) {
     // dividendRate → trailingAnnualDividendRate → yield×price の順で推定
     let estimatedDiv = q.dividendRate > 0 ? q.dividendRate : 0;
     if (!estimatedDiv && q.dividendYield > 0 && q.price > 0) {
       estimatedDiv = Math.round(q.dividendYield * q.price * 10) / 10;
     }
-    if (divEl  && noVal(divEl)  && estimatedDiv > 0) divEl.value = estimatedDiv;
+    if (divEl  && noVal(divEl)  && estimatedDiv > 0) { divEl.value = estimatedDiv; gotDiv = true; }
     if (divMEl && noVal(divMEl)) {
       const ms = inferDivMonths(q.exDividendDate, q.payDate);
-      if (ms.length) divMEl.value = ms.join(' ');
+      if (ms.length) { divMEl.value = ms.join(' '); gotDiv = true; }
+    }
+    if (!apiKey && !gotDiv) {
+      hint.textContent = '配当情報はJ-Quants APIキーが必要です（設定から登録）';
+      hint.className = 'hint';
     }
   }
 
@@ -2077,8 +2090,9 @@ async function fetchAndFill(prefix) {
   }
 
   if (!gotPrice) { hint.textContent = '取得できませんでした'; hint.className = 'hint err'; return; }
-  hint.textContent = '✓ 取得完了'; hint.className = 'hint ok';
-  setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2500);
+  const divHint = gotDiv ? '・配当✓' : (apiKey ? '・配当なし' : '・配当要APIキー');
+  hint.textContent = '✓ 取得完了' + divHint; hint.className = 'hint ok';
+  setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 3500);
 }
 
 // ── Events: nav ──
@@ -2166,6 +2180,7 @@ document.getElementById('sortDescBtn').addEventListener('click', () => {
 document.querySelectorAll('.sort-sheet-btn[data-sort]').forEach(b => {
   b.addEventListener('click', () => {
     holdingsSortKey = b.dataset.sort;
+    localStorage.setItem(SORT_KEY, JSON.stringify({ key: holdingsSortKey, asc: holdingsSortAsc }));
     closeModal('sortModal');
     renderHoldings();
   });
