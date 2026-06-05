@@ -112,6 +112,16 @@ body{background:linear-gradient(160deg,#f0f0ff 0%,#e8eaf6 40%,#f5f0ff 100%);min-
 .tab-ttl{font-size:20px;font-weight:700}
 .icon-btn{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);transition:.15s}
 .icon-btn:active{transform:scale(.93)}
+/* ── Sort modal ── */
+.sort-dir-row{display:flex;gap:8px;padding:4px 16px 14px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.sort-dir-btn{flex:1;padding:9px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:transparent;font-size:14px;font-family:inherit;font-weight:600;cursor:pointer;transition:.15s;color:var(--text2)}
+.sort-dir-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.sort-sheet-items{padding:0 12px 4px}
+.sort-sheet-btn{display:block;width:100%;padding:15px 6px;border:none;background:transparent;font-size:15px;font-family:inherit;font-weight:500;color:var(--text);cursor:pointer;text-align:center;transition:.15s;border-radius:var(--r-sm)}
+.sort-sheet-btn:active{background:var(--neutral)}
+.sort-sheet-btn.active{color:var(--accent);font-weight:700}
+.sort-sheet-btn.cancel{color:#dc2626}
+.sort-sheet-sep{height:1px;background:var(--border);margin:0 4px}
 .hlist{padding:0 14px;display:flex;flex-direction:column;gap:10px}
 
 /* ── Holding card ── */
@@ -397,8 +407,13 @@ body::after{z-index:-1;background:
 <div class="tab" id="tab-holdings">
   <div class="tab-hd">
     <div class="tab-ttl">保有銘柄</div>
-    <div class="icon-btn" id="hRefreshBtn" title="株価を更新">
-      <svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>
+    <div style="display:flex;gap:8px">
+      <div class="icon-btn" id="hSortBtn" title="並び替え">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7B5EA7" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><polyline points="17 15 20 18 23 15" transform="translate(-2,0)"/><line x1="19" y1="12" x2="19" y2="18" transform="translate(-1,0)"/></svg>
+      </div>
+      <div class="icon-btn" id="hRefreshBtn" title="株価を更新">
+        <svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>
+      </div>
     </div>
   </div>
   <div class="tag-chip-row" id="holdingsTagRow"></div>
@@ -673,6 +688,35 @@ body::after{z-index:-1;background:
   </div>
 </div>
 
+<!-- ═══ SORT MODAL ═══ -->
+<div class="overlay" id="sortModal">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="mhd"><div class="mttl">並び替え</div></div>
+    <div class="sort-dir-row">
+      <button class="sort-dir-btn" id="sortAscBtn">昇順</button>
+      <button class="sort-dir-btn on" id="sortDescBtn">降順</button>
+    </div>
+    <div class="sort-sheet-items">
+      <button class="sort-sheet-btn" data-sort="default">編集順（タグ絞り込みなしの時のみ）</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-sort="code">企業コード順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-sort="yield">配当利回り順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-sort="dividend">配当額順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-sort="value">評価額順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-sort="plrate">損益率順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-sort="pl">評価損益順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn cancel" id="sortCancelBtn">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ STOCK DETAIL MODAL ═══ -->
 <div class="overlay" id="stockDetailModal">
   <div class="sheet" style="max-height:94vh">
@@ -728,6 +772,8 @@ let marketCache   = null;
 let marketCacheAt = 0;
 let selectedDivMonth   = null;
 let holdingsTagFilter  = null;
+let holdingsSortKey    = 'default';
+let holdingsSortAsc    = false;
 let portfolioTagFilter = null;
 let detailStockId      = null;
 let detailPeriod       = '1m';
@@ -1245,13 +1291,27 @@ function renderHoldings() {
     return;
   }
 
-  const base = [...stocks].sort((a,b) => b.currentPrice*b.shares - a.currentPrice*a.shares);
-  const sorted = holdingsTagFilter ? base.filter(s => (s.tags||[]).includes(holdingsTagFilter)) : base;
+  const filtered = holdingsTagFilter ? stocks.filter(s => (s.tags||[]).includes(holdingsTagFilter)) : [...stocks];
 
-  if (!sorted.length) {
+  if (!filtered.length) {
     el.innerHTML = `<div class="empty"><div class="empty-ico">🏷</div><div class="empty-t">「${esc(holdingsTagFilter)}」の銘柄はありません</div></div>`;
     return;
   }
+
+  const sortCmp = (() => {
+    switch (holdingsSortKey) {
+      case 'code':     return (a,b) => (a.code||'').localeCompare(b.code||'');
+      case 'yield':    return (a,b) => (a.annualDividend/Math.max(a.currentPrice,1)) - (b.annualDividend/Math.max(b.currentPrice,1));
+      case 'dividend': return (a,b) => (a.annualDividend*a.shares) - (b.annualDividend*b.shares);
+      case 'value':    return (a,b) => (a.currentPrice*a.shares) - (b.currentPrice*b.shares);
+      case 'plrate':   return (a,b) => ((a.currentPrice-a.buyPrice)/Math.max(a.buyPrice,1)) - ((b.currentPrice-b.buyPrice)/Math.max(b.buyPrice,1));
+      case 'pl':       return (a,b) => ((a.currentPrice-a.buyPrice)*a.shares) - ((b.currentPrice-b.buyPrice)*b.shares);
+      default:         return null; // editing order
+    }
+  })();
+  const sorted = sortCmp
+    ? filtered.sort((a,b) => holdingsSortAsc ? sortCmp(a,b) : sortCmp(b,a))
+    : holdingsSortAsc ? filtered : filtered.slice().reverse();
 
   el.innerHTML = sorted.map((s, i) => {
     const r = plRate(s), pl = (s.currentPrice - s.buyPrice) * s.shares, val = s.currentPrice * s.shares;
@@ -2043,6 +2103,36 @@ document.addEventListener('click', e => {
     refreshAllPrices(e.target.closest('button') || e.target.closest('.icon-btn'));
   }
 });
+
+// ── Events: sort modal ──
+function openSortModal() {
+  // Sync active state
+  document.querySelectorAll('.sort-sheet-btn[data-sort]').forEach(b => {
+    b.classList.toggle('active', b.dataset.sort === holdingsSortKey);
+  });
+  document.getElementById('sortAscBtn').classList.toggle('on', holdingsSortAsc);
+  document.getElementById('sortDescBtn').classList.toggle('on', !holdingsSortAsc);
+  openModal('sortModal');
+}
+document.getElementById('hSortBtn').addEventListener('click', openSortModal);
+document.getElementById('sortAscBtn').addEventListener('click', () => {
+  holdingsSortAsc = true;
+  document.getElementById('sortAscBtn').classList.add('on');
+  document.getElementById('sortDescBtn').classList.remove('on');
+});
+document.getElementById('sortDescBtn').addEventListener('click', () => {
+  holdingsSortAsc = false;
+  document.getElementById('sortAscBtn').classList.remove('on');
+  document.getElementById('sortDescBtn').classList.add('on');
+});
+document.querySelectorAll('.sort-sheet-btn[data-sort]').forEach(b => {
+  b.addEventListener('click', () => {
+    holdingsSortKey = b.dataset.sort;
+    closeModal('sortModal');
+    renderHoldings();
+  });
+});
+document.getElementById('sortCancelBtn').addEventListener('click', () => closeModal('sortModal'));
 
 // ── Events: add modal ──
 document.getElementById('fCode').addEventListener('blur', () => fetchAndFill('f'));
