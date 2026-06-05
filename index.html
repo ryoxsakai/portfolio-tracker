@@ -1005,8 +1005,7 @@ function renderHoldings() {
     const ip = r > cfg.profitLine, il = r < cfg.lossLine;
     const tagBadges = (s.tags||[]).map(t => `<span class="htag-badge">${esc(t)}</span>`).join('');
     const badges = [
-      s.account     ? `<span class="badge nisa">${esc(s.account)}</span>` : '',
-      s.cyclicality ? `<span class="badge ${cycClass(s.cyclicality)}">${esc(s.cyclicality)}</span>` : '',
+      s.account ? `<span class="badge nisa">${esc(s.account)}</span>` : '',
       ip ? '<span class="badge alp">利確ライン到達</span>' : '',
       il ? '<span class="badge all">損切ライン到達</span>' : '',
     ].join('');
@@ -1018,8 +1017,9 @@ function renderHoldings() {
       <div class="htop">
         <div>
           <div class="hname">${esc(s.name)}</div>
-          <div class="hcode">${s.code||'—'}${s.sector?' · '+esc(s.sector):''}</div>
-          <div class="badges">${badges}${tagBadges}</div>
+          <div class="hcode">${s.code||'—'}${s.sector?' · '+esc(s.sector):''}${s.cyclicality?' · '+esc(s.cyclicality):''}</div>
+          <div class="badges">${badges}</div>
+          ${tagBadges ? `<div style="margin-top:4px">${tagBadges}</div>` : ''}
         </div>
         <div class="hpl">
           <div class="hpl-val ${pl>=0?'pos':'neg'}">${fmtPL(pl)}</div>
