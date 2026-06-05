@@ -309,6 +309,23 @@ body::after{z-index:-1;background:
 .tag-chip.on{background:#6d73ff;color:#fff;box-shadow:0 4px 14px rgba(109,115,255,.32);}
 .tag-chip:active{transform:scale(.94);}
 .htag-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;background:rgba(109,115,255,.12);color:#6d73ff;margin-right:3px;margin-top:2px;}
+
+/* ── Stock Detail Modal ── */
+.detail-price{font-size:30px;font-weight:800;font-family:'Inter',sans-serif;color:#102039;letter-spacing:-.03em}
+.detail-pl{font-size:13px;font-weight:700;margin-top:3px}
+.detail-pl.pos{color:var(--pos)}.detail-pl.neg{color:var(--neg)}
+.detail-chart-wrap{position:relative;min-height:180px;margin:10px 0 4px}
+#detailChart{width:100%;display:block}
+.detail-chart-hint{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:13px;color:var(--text3);background:rgba(255,255,255,.6);border-radius:14px}
+.detail-chart-hint.on{display:flex}
+.detail-period-row{display:flex;gap:2px;justify-content:space-around;height:30px;padding:0 6px;margin:4px 0 16px;border-radius:16px;background:rgba(255,255,255,.74);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 22px rgba(91,111,171,.08);align-items:center}
+.detail-per-btn{flex:1;height:24px;border-radius:12px;border:none;background:transparent;color:#435371;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;transition:.15s}
+.detail-per-btn.on{background:linear-gradient(135deg,#7d8bff,#6269f5);color:#fff;box-shadow:0 5px 12px rgba(98,105,245,.28)}
+.detail-period-lbl{font-size:12px;font-weight:700;text-align:center;margin-bottom:8px}
+.detail-period-lbl.pos{color:var(--pos)}.detail-period-lbl.neg{color:var(--neg)}
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-bottom:16px}
+.d-stat-l{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:2px}
+.d-stat-v{font-size:13px;font-weight:700;color:#102039;font-family:'JetBrains Mono',monospace}
 </style>
 </head>
 <body>
@@ -656,6 +673,38 @@ body::after{z-index:-1;background:
   </div>
 </div>
 
+<!-- ═══ STOCK DETAIL MODAL ═══ -->
+<div class="overlay" id="stockDetailModal">
+  <div class="sheet" style="max-height:94vh">
+    <div class="handle"></div>
+    <div class="mhd">
+      <div style="min-width:0">
+        <div class="mttl" id="detailName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px">—</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:1px" id="detailCode"></div>
+      </div>
+      <button class="mclose" id="detailClose">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="detail-price" id="detailPrice">—</div>
+      <div class="detail-pl" id="detailPL">—</div>
+      <div class="detail-chart-wrap">
+        <canvas id="detailChart" height="180"></canvas>
+        <div class="detail-chart-hint" id="detailChartHint">取得中…</div>
+      </div>
+      <div class="detail-period-lbl" id="detailPeriodLbl"></div>
+      <div class="detail-period-row">
+        <button class="detail-per-btn" data-p="1d">1日</button>
+        <button class="detail-per-btn on" data-p="1m">1ヶ月</button>
+        <button class="detail-per-btn" data-p="3m">3ヶ月</button>
+        <button class="detail-per-btn" data-p="1y">1年</button>
+      </div>
+      <div class="d-grid" id="detailStats"></div>
+      <button class="btn-p" id="detailEdit">この銘柄を編集</button>
+      <button class="btn-s" id="detailCancel" style="margin-top:8px">閉じる</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- #app -->
 <script>
 // ── Keys ──
@@ -679,6 +728,15 @@ let marketCacheAt = 0;
 let selectedDivMonth   = null;
 let holdingsTagFilter  = null;
 let portfolioTagFilter = null;
+let detailStockId      = null;
+let detailPeriod       = '1m';
+
+const CHART_PERIODS = {
+  '1d': { range: '1d',  interval: '5m'  },
+  '1m': { range: '1mo', interval: '1d'  },
+  '3m': { range: '3mo', interval: '1d'  },
+  '1y': { range: '1y',  interval: '1wk' },
+};
 
 // ── Load / Save ──
 function loadJSON(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; } }
@@ -915,7 +973,7 @@ function renderHome() {
   el.innerHTML = top.map(s => {
     const r = plRate(s);
     const diff = s.currentPrice - s.buyPrice;
-    return `<div class="srow" onclick="openEdit('${s.id}')">
+    return `<div class="srow" onclick="openStockDetail('${s.id}')">
       <div class="sico ${logoClass(s)}">${stockLogo(s)}</div>
       <div class="sinfo">
         <div class="sname">${esc(stockTitle(s))}</div>
@@ -979,6 +1037,159 @@ function renderWatchList() {
   </div>`).join('');
 }
 
+// ── Stock detail / chart ──
+async function fetchYahooChart(code, range, interval) {
+  const sym = encodeURIComponent(code + '.T');
+  for (const base of ['https://query1.finance.yahoo.com','https://query2.finance.yahoo.com']) {
+    try {
+      const r = await fetch(`${base}/v8/finance/chart/${sym}?range=${range}&interval=${interval}&includePrePost=false`);
+      if (!r.ok) continue;
+      const d = await r.json();
+      const res = d?.chart?.result?.[0];
+      if (!res) continue;
+      const ts  = res.timestamp || [];
+      const q   = res.indicators?.quote?.[0] || {};
+      const pts = ts.map((t,i) => ({ t, o:q.open?.[i], h:q.high?.[i], l:q.low?.[i], c:q.close?.[i] }))
+                    .filter(p => p.c != null);
+      return { pts, meta: res.meta };
+    } catch(e) { console.warn('YahooChart', e); }
+  }
+  return null;
+}
+
+function drawStockChart(canvas, pts) {
+  if (!canvas || !pts || !pts.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth || 320, H = 180;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const closes = pts.map(p => p.c);
+  const minV = Math.min(...closes) * 0.998, maxV = Math.max(...closes) * 1.002;
+  const rng  = maxV - minV || 1;
+  const pad  = { l:4, r:56, t:10, b:26 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const xp = i => pad.l + (i / (pts.length-1||1)) * pw;
+  const yp = v => pad.t + (1-(v-minV)/rng)*ph;
+  const isUp = closes[closes.length-1] >= closes[0];
+  const color = isUp ? '#20c883' : '#ff3f64';
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t+ph);
+  grad.addColorStop(0, isUp ? 'rgba(32,200,131,.22)' : 'rgba(255,63,100,.18)');
+  grad.addColorStop(1, 'rgba(255,255,255,.0)');
+  ctx.beginPath();
+  ctx.moveTo(xp(0), yp(closes[0]));
+  for (let i=1; i<pts.length; i++) {
+    const cx = (xp(i-1)+xp(i))/2;
+    ctx.bezierCurveTo(cx, yp(closes[i-1]), cx, yp(closes[i]), xp(i), yp(closes[i]));
+  }
+  ctx.lineTo(xp(pts.length-1), H-pad.b);
+  ctx.lineTo(xp(0), H-pad.b);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Grid + price labels
+  ctx.strokeStyle = 'rgba(126,143,180,.14)'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#7f8faf'; ctx.font = '11px Inter,sans-serif'; ctx.textAlign = 'left';
+  for (let g=0; g<4; g++) {
+    const y = pad.t + (g/3)*ph;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    const v = maxV - (g/3)*rng;
+    ctx.fillText(Math.round(v).toLocaleString('ja-JP'), W-pad.r+6, y+4);
+  }
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(xp(0), yp(closes[0]));
+  for (let i=1; i<pts.length; i++) {
+    const cx = (xp(i-1)+xp(i))/2;
+    ctx.bezierCurveTo(cx, yp(closes[i-1]), cx, yp(closes[i]), xp(i), yp(closes[i]));
+  }
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // End dot
+  const lx = xp(pts.length-1), ly = yp(closes[closes.length-1]);
+  ctx.beginPath(); ctx.arc(lx,ly,5,0,Math.PI*2); ctx.fillStyle = color+'44'; ctx.fill();
+  ctx.beginPath(); ctx.arc(lx,ly,3.5,0,Math.PI*2); ctx.fillStyle = color; ctx.fill();
+  ctx.beginPath(); ctx.arc(lx,ly,2,0,Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+
+  // Date labels
+  ctx.fillStyle = '#7f8faf'; ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(pts.length/5));
+  for (let i=0; i<pts.length; i+=step) {
+    const d = new Date(pts[i].t*1000);
+    const lbl = detailPeriod === '1d'
+      ? p2(d.getHours())+':'+p2(d.getMinutes())
+      : (d.getMonth()+1)+'/'+d.getDate();
+    ctx.fillText(lbl, Math.min(Math.max(xp(i),22), W-pad.r-14), H-7);
+  }
+}
+
+async function openStockDetail(id) {
+  const s = stocks.find(x=>x.id===id);
+  if (!s) return;
+  detailStockId = id;
+  detailPeriod  = '1m';
+
+  document.getElementById('detailName').textContent  = s.name || s.code;
+  document.getElementById('detailCode').textContent  = s.code || '';
+  document.getElementById('detailPrice').textContent = fmtPrice(s.currentPrice);
+  const r = plRate(s), pl = (s.currentPrice-s.buyPrice)*s.shares;
+  const plEl = document.getElementById('detailPL');
+  plEl.textContent = fmtR(r) + '　' + fmtPL(pl);
+  plEl.className = 'detail-pl ' + (r>=0?'pos':'neg');
+
+  const val = s.currentPrice*s.shares, cost = s.buyPrice*s.shares;
+  document.getElementById('detailStats').innerHTML = [
+    ['評価額', fmtY(val)],
+    ['含み損益', `<span class="${pl>=0?'pos':'neg'}" style="font-family:inherit">${fmtPL(pl)}</span>`],
+    ['保有株数', s.shares.toLocaleString('ja-JP')+'株'],
+    ['取得単価', fmtY(s.buyPrice)],
+    s.annualDividend>0 ? ['年間配当（予）', fmtY(s.annualDividend*s.shares)] : null,
+    s.annualDividend>0 ? ['配当利回り', (s.annualDividend/s.currentPrice*100).toFixed(2)+'%'] : null,
+  ].filter(Boolean).map(([l,v]) =>
+    `<div><div class="d-stat-l">${l}</div><div class="d-stat-v">${v}</div></div>`
+  ).join('');
+
+  document.getElementById('detailPeriodLbl').textContent = '';
+  document.querySelectorAll('.detail-per-btn').forEach(b => b.classList.toggle('on', b.dataset.p==='1m'));
+  openModal('stockDetailModal');
+  loadDetailChart();
+}
+
+async function loadDetailChart() {
+  const s = stocks.find(x=>x.id===detailStockId);
+  if (!s || !s.code) return;
+  const hint = document.getElementById('detailChartHint');
+  const canvas = document.getElementById('detailChart');
+  hint.textContent = '取得中…'; hint.classList.add('on');
+  canvas.style.opacity = '.25';
+
+  const cfg  = CHART_PERIODS[detailPeriod];
+  const data = await fetchYahooChart(s.code, cfg.range, cfg.interval);
+  hint.classList.remove('on');
+  canvas.style.opacity = '1';
+
+  if (!data || !data.pts.length) {
+    hint.textContent = 'チャートデータを取得できませんでした';
+    hint.classList.add('on');
+    return;
+  }
+  drawStockChart(canvas, data.pts);
+
+  const first = data.pts[0]?.c, last = data.pts[data.pts.length-1]?.c;
+  if (first && last) {
+    const chg = (last-first)/first*100;
+    const lbl = document.getElementById('detailPeriodLbl');
+    lbl.textContent = `この期間で ${chg>=0?'+':''}${chg.toFixed(2)}%`;
+    lbl.className   = 'detail-period-lbl ' + (chg>=0?'pos':'neg');
+  }
+}
+
 // ── Render Holdings ──
 function renderHoldings() {
   const el = document.getElementById('holdingsList');
@@ -1016,7 +1227,7 @@ function renderHoldings() {
       <div class="hstat"><div class="hstat-l">年間配当（予想）</div><div class="hstat-v">${fmtY(s.annualDividend * s.shares)}</div></div>
       <div class="hstat"><div class="hstat-l">配当利回り</div><div class="hstat-v">${(s.annualDividend / s.currentPrice * 100).toFixed(2)}%</div></div>` : '';
     const mChips = s.dividendMonths && s.dividendMonths.length ? `<div class="hstat" style="grid-column:1/-1"><div class="hstat-l">配当支払月</div><div class="mchips">${s.dividendMonths.map(m=>`<span class="mchip">${m}月</span>`).join('')}</div></div>` : '';
-    return `<div class="hcard ${ip?'pc':il?'lc':''}" style="animation-delay:${i*.04}s" onclick="openEdit('${s.id}')">
+    return `<div class="hcard ${ip?'pc':il?'lc':''}" style="animation-delay:${i*.04}s" onclick="openStockDetail('${s.id}')">
       <div class="htop">
         <div>
           <div class="hname">${esc(s.name)}</div>
@@ -1805,6 +2016,20 @@ document.getElementById('addConfirm').addEventListener('click', () => {
   stocks.push(mkStock(d.code, d.name, d.buyPrice, d.currentPrice, d.shares, {sector:d.sector,cyclicality:d.cyclicality,account:d.account,annualDividend:d.annualDividend,dividendMonths:d.dividendMonths,tags:d.tags}));
   saveStocks(); snapshot(); closeModal('addModal'); goTab('holdings');
 });
+
+// ── Events: stock detail modal ──
+document.getElementById('detailClose').addEventListener('click',  () => closeModal('stockDetailModal'));
+document.getElementById('detailCancel').addEventListener('click', () => closeModal('stockDetailModal'));
+document.getElementById('detailEdit').addEventListener('click', () => {
+  closeModal('stockDetailModal');
+  openEdit(detailStockId);
+});
+document.querySelectorAll('.detail-per-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.detail-per-btn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  detailPeriod = b.dataset.p;
+  loadDetailChart();
+}));
 
 // ── Events: edit modal ──
 document.getElementById('editClose').addEventListener('click', () => closeModal('editModal'));
