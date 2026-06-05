@@ -1978,8 +1978,12 @@ async function fetchJQDividend(code, apiKey) {
     if (!all.length) return null;
     all.sort((a,b) => (b.RecordDate||'').localeCompare(a.RecordDate||''));
 
-    // 配当月: 直近4件の RecordDate 月をユニーク化（≒直近2年分）
-    const months = [...new Set(all.slice(0,4).map(x => new Date(x.RecordDate).getMonth()+1))].sort((a,b)=>a-b);
+    // 配当月: 権利確定日(RecordDate)+3ヶ月 = 支払い月
+    const addM = (m, n) => (m - 1 + n) % 12 + 1;
+    const months = [...new Set(all.slice(0,4).map(x => {
+      const rm = new Date(x.RecordDate).getMonth() + 1;
+      return addM(rm, 3); // 権利確定→支払いは約3ヶ月後
+    }))].sort((a,b)=>a-b);
 
     // 年間配当: ForecastDividendPerShareAnnual 優先、なければ直近期の実績合計
     let annualDiv = 0;
@@ -2019,13 +2023,14 @@ async function fetchJQStatement(code, apiKey) {
     all.sort((a, b) => (b.DisclosedDate || '').localeCompare(a.DisclosedDate || ''));
     const latest = all[0];
 
-    // CurrentPeriodEndDate の月から期末配当月・中間配当月を導出
+    // 期末月+3ヶ月=期末配当支払い月、さらに+6ヶ月=中間配当支払い月
     const endDate = latest.CurrentPeriodEndDate || '';
     let months = [];
     if (endDate) {
-      const endMonth = new Date(endDate).getMonth() + 1;
-      const midMonth = ((endMonth - 1 + 6) % 12) + 1;
-      months = [endMonth, midMonth].sort((a, b) => a - b);
+      const endMonth  = new Date(endDate).getMonth() + 1;
+      const payEnd    = ((endMonth  - 1 + 3) % 12) + 1; // 期末支払い月
+      const payMid    = ((payEnd    - 1 + 6) % 12) + 1; // 中間支払い月
+      months = [payEnd, payMid].sort((a, b) => a - b);
     }
 
     // 予想年間配当、なければ実績年間配当
@@ -2062,10 +2067,12 @@ function parseDividendCSV(csv, code) {
   }
   if (!rows.length) return null;
   rows.sort((a, b) => (b.RecordDate || b.DisclosedDate || '').localeCompare(a.RecordDate || a.DisclosedDate || ''));
+  // 権利確定日 / 期末日 + 3ヶ月 = 支払い月
+  const addM3 = m => ((m - 1 + 3) % 12) + 1;
   const months = [...new Set(
     rows.slice(0,4).map(r => {
       const d = r.RecordDate || r.CurrentPeriodEndDate || '';
-      return d ? new Date(d).getMonth() + 1 : 0;
+      return d ? addM3(new Date(d).getMonth() + 1) : 0;
     }).filter(m => m > 0)
   )].sort((a, b) => a - b);
   let annualDiv = 0;
