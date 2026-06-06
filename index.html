@@ -128,6 +128,29 @@ body{background:linear-gradient(160deg,#f0f0ff 0%,#e8eaf6 40%,#f5f0ff 100%);min-
 .mpick:active{opacity:.7}
 .hlist{padding:0 14px;display:flex;flex-direction:column;gap:10px}
 
+/* ── View toggle ── */
+.view-toggle{display:flex;background:var(--neutral);border-radius:8px;padding:2px;gap:2px}
+.view-btn{padding:5px 7px;border-radius:6px;border:none;background:transparent;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;line-height:0}
+.view-btn.on{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+/* ── Tile grid ── */
+.tile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 10px}
+.tile{position:relative;border-radius:12px;overflow:hidden;height:108px;cursor:pointer;background:#0f1923;transition:.15s;animation:fadeUp .2s ease-out both}
+.tile:active{transform:scale(.96)}
+.tile canvas{position:absolute;inset:0;width:100%;height:100%}
+.tile-body{position:absolute;inset:0;padding:8px 9px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(175deg,rgba(0,0,0,.08) 0%,rgba(0,0,0,.56) 100%)}
+.tile-name{font-size:10.5px;font-weight:700;color:rgba(255,255,255,.92);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.tile-code{font-size:9px;color:rgba(255,255,255,.45);margin-top:1px}
+.tile-price{font-size:14px;font-weight:700;color:#fff;font-family:'Inter',sans-serif;line-height:1.2}
+.tile-badge{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 5px;border-radius:5px;margin-top:3px}
+.tile-badge.pos{background:rgba(22,163,74,.9);color:#fff}
+.tile-badge.neg{background:rgba(220,38,38,.9);color:#fff}
+
+/* ── Tile period bar ── */
+.tile-bar{display:flex;align-items:center;gap:6px;padding:0 10px 10px;flex-wrap:nowrap}
+.tile-per{font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.tile-per.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
 /* ── Holding card ── */
 .hcard{background:var(--card);backdrop-filter:blur(12px);border-radius:var(--r);border:1px solid var(--border);padding:14px 16px;box-shadow:0 1px 8px rgba(80,60,160,.06);cursor:pointer;transition:.15s;animation:fadeUp .2s ease-out both}
 .hcard:active{transform:scale(.99)}
@@ -415,7 +438,15 @@ body::after{z-index:-1;background:
 <div class="tab" id="tab-holdings">
   <div class="tab-hd">
     <div class="tab-ttl">保有銘柄</div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="view-toggle">
+        <button class="view-btn on" id="hListBtn" title="リスト">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button class="view-btn" id="hTileBtn" title="タイル">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+        </button>
+      </div>
       <div class="icon-btn" id="hSortBtn" title="並び替え">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7B5EA7" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><polyline points="17 15 20 18 23 15" transform="translate(-2,0)"/><line x1="19" y1="12" x2="19" y2="18" transform="translate(-1,0)"/></svg>
       </div>
@@ -423,6 +454,12 @@ body::after{z-index:-1;background:
         <svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>
       </div>
     </div>
+  </div>
+  <div class="tile-bar" id="tileBar" style="display:none">
+    <button class="tile-per" data-tp="1w">1週</button>
+    <button class="tile-per on" data-tp="1m">1ヶ月</button>
+    <button class="tile-per" data-tp="3m">3ヶ月</button>
+    <button class="tile-per" data-tp="1y">1年</button>
   </div>
   <div class="tag-chip-row" id="holdingsTagRow"></div>
   <div class="hlist" id="holdingsList"></div>
@@ -794,6 +831,9 @@ let holdingsSortAsc = !!_sortCfg.asc;
 let portfolioTagFilter = null;
 let detailStockId      = null;
 let detailPeriod       = '1m';
+let holdingsView = localStorage.getItem('pt_hview_v1') || 'list';
+let tilePeriod   = localStorage.getItem('pt_tper_v1')  || '1m';
+const tileCache  = {};
 
 const CHART_PERIODS = { '1w': 10, '1m': 33, '3m': 95, '1y': 370 };
 
@@ -1301,9 +1341,100 @@ async function loadDetailChart() {
   }
 }
 
+// ── Tile chart helpers ──
+function drawTileCanvas(canvasId, prices, isPos) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth || 120, H = canvas.offsetHeight || 108;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  if (!prices.length) return;
+  const minP = Math.min(...prices), maxP = Math.max(...prices), rng = maxP - minP || 1;
+  const pT = 8, pB = 4, pw = W, ph = H - pT - pB;
+  const xp = i => (i / Math.max(prices.length - 1, 1)) * pw;
+  const yp = v => pT + (1 - (v - minP) / rng) * ph;
+  const color = isPos ? '#20c883' : '#ff3f64';
+  // Filled area
+  ctx.beginPath();
+  prices.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)));
+  ctx.lineTo(pw, H); ctx.lineTo(0, H); ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pT, 0, H);
+  grad.addColorStop(0, isPos ? 'rgba(32,200,131,.38)' : 'rgba(255,63,100,.38)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad; ctx.fill();
+  // Line
+  ctx.beginPath();
+  prices.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)));
+  ctx.strokeStyle = color; ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+}
+
+function drawTileFake(canvasId, seed, isPos) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const pts = Array.from({length: 14}, (_, i) => {
+    h = (h * 1664525 + 1013904223) >>> 0;
+    return 40 + (h & 0x1fff) / 0x1fff * 16 + (isPos ? i * .4 : -i * .4);
+  });
+  drawTileCanvas(canvasId, pts, isPos);
+}
+
+async function fetchAndDrawTile(s) {
+  if (isFundCode(s.code)) return;
+  const periods = { '1w': 10, '1m': 33, '3m': 95, '1y': 370 };
+  const daysFrom = periods[tilePeriod] || 33;
+  const cacheKey = `${s.code}_${tilePeriod}`;
+  const data = await fetchJQChart(s.code, daysFrom).catch(() => null);
+  if (!data || !data.length) return;
+  tileCache[cacheKey] = data.map(d => d.c);
+  drawTileCanvas('tc_' + s.id, tileCache[cacheKey], plRate(s) >= 0);
+}
+
+function renderTileGrid(sorted) {
+  const el = document.getElementById('holdingsList');
+  el.className = 'tile-grid';
+  el.innerHTML = sorted.map((s, i) => {
+    const r = plRate(s);
+    return `<div class="tile" style="animation-delay:${i * .03}s" onclick="openStockDetail('${s.id}')">
+      <canvas id="tc_${s.id}"></canvas>
+      <div class="tile-body">
+        <div>
+          <div class="tile-name">${esc(s.name)}</div>
+          <div class="tile-code">${s.code || ''}</div>
+        </div>
+        <div>
+          <div class="tile-price">${fmtPrice(s.currentPrice)}</div>
+          <div class="tile-badge ${r >= 0 ? 'pos' : 'neg'}">${fmtR(r)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  // After layout: draw charts
+  requestAnimationFrame(() => {
+    sorted.forEach(s => {
+      const cacheKey = `${s.code}_${tilePeriod}`;
+      const isPos = plRate(s) >= 0;
+      if (tileCache[cacheKey]) {
+        drawTileCanvas('tc_' + s.id, tileCache[cacheKey], isPos);
+      } else {
+        drawTileFake('tc_' + s.id, s.id, isPos);
+        fetchAndDrawTile(s);
+      }
+    });
+  });
+}
+
 // ── Render Holdings ──
 function renderHoldings() {
   const el = document.getElementById('holdingsList');
+
+  // ── ビュー切り替えUI同期 ──
+  document.getElementById('hListBtn').classList.toggle('on', holdingsView === 'list');
+  document.getElementById('hTileBtn').classList.toggle('on', holdingsView === 'tile');
+  document.getElementById('tileBar').style.display = holdingsView === 'tile' ? 'flex' : 'none';
+  document.querySelectorAll('.tile-per').forEach(b => b.classList.toggle('on', b.dataset.tp === tilePeriod));
 
   // ── Tag chip row ──
   const allTags = [...new Set(stocks.flatMap(s => s.tags||[]))].sort();
@@ -1313,6 +1444,7 @@ function renderHoldings() {
   });
 
   if (!stocks.length) {
+    el.className = 'hlist';
     el.innerHTML = '<div class="empty"><div class="empty-ico">📊</div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
     return;
   }
@@ -1320,6 +1452,7 @@ function renderHoldings() {
   const filtered = holdingsTagFilter ? stocks.filter(s => (s.tags||[]).includes(holdingsTagFilter)) : [...stocks];
 
   if (!filtered.length) {
+    el.className = 'hlist';
     el.innerHTML = `<div class="empty"><div class="empty-ico">🏷</div><div class="empty-t">「${esc(holdingsTagFilter)}」の銘柄はありません</div></div>`;
     return;
   }
@@ -1339,6 +1472,9 @@ function renderHoldings() {
     ? filtered.sort((a,b) => holdingsSortAsc ? sortCmp(a,b) : sortCmp(b,a))
     : holdingsSortAsc ? filtered : filtered.slice().reverse();
 
+  if (holdingsView === 'tile') { renderTileGrid(sorted); return; }
+
+  el.className = 'hlist';
   el.innerHTML = sorted.map((s, i) => {
     const r = plRate(s), pl = stockVal(s) - stockCost(s), val = stockVal(s);
     const ip = r > cfg.profitLine, il = r < cfg.lossLine;
@@ -2445,6 +2581,22 @@ function openSortModal() {
   document.getElementById('sortDescBtn').classList.toggle('on', !holdingsSortAsc);
   openModal('sortModal');
 }
+// ── ビュー切り替え ──
+document.getElementById('hListBtn').addEventListener('click', () => {
+  holdingsView = 'list'; localStorage.setItem('pt_hview_v1', 'list'); renderHoldings();
+});
+document.getElementById('hTileBtn').addEventListener('click', () => {
+  holdingsView = 'tile'; localStorage.setItem('pt_hview_v1', 'tile'); renderHoldings();
+});
+// タイル期間ボタン
+document.querySelectorAll('.tile-per').forEach(b => {
+  b.addEventListener('click', () => {
+    tilePeriod = b.dataset.tp;
+    localStorage.setItem('pt_tper_v1', tilePeriod);
+    renderHoldings();
+  });
+});
+
 document.getElementById('hSortBtn').addEventListener('click', openSortModal);
 document.getElementById('sortAscBtn').addEventListener('click', () => {
   holdingsSortAsc = true;
