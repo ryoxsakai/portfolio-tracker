@@ -1935,7 +1935,8 @@ function isFundCode(code) {
 
 // ── Yahoo Finance ──
 async function fetchYahoo(codes) {
-  const syms = codes.map(c => encodeURIComponent(c + '.T')).join(',');
+  // v7 bulk endpoint (fast, but requires crumb auth — may return empty)
+  const syms = encodeURIComponent(codes.map(c => c + '.T').join(','));
   for (const host of ['query1', 'query2']) {
     const apiUrl = `https://${host}.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=${syms}`;
     for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
@@ -1944,20 +1945,44 @@ async function fetchYahoo(codes) {
         if (!res.ok) continue;
         const data = await res.json();
         const list = data?.quoteResponse?.result;
-        if (!list) continue;
+        if (!list?.length) continue;
         const map = {};
         list.forEach(q => {
+          if (!q.regularMarketPrice) return;
           const c = q.symbol.replace(/\.T$/i, '').toUpperCase();
           map[c] = { name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice,
             dividendRate: q.dividendRate || q.trailingAnnualDividendRate || 0,
             dividendYield: q.trailingAnnualDividendYield || q.dividendYield || 0,
             exDividendDate: q.exDividendDate || 0, payDate: q.payDate || 0 };
         });
-        return map;
-      } catch(e) { console.error('Yahoo:', e); }
+        if (Object.keys(map).length) return map;
+      } catch(e) {}
     }
   }
-  return {};
+  // v8 chart fallback: no crumb needed, same endpoint used for dividends
+  return await fetchYahooChart(codes);
+}
+
+// v8/finance/chart per-stock (authentication-free fallback for price fetch)
+async function fetchYahooChart(codes) {
+  const map = {};
+  for (const code of codes) {
+    const sym = encodeURIComponent(code + '.T');
+    const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=5d`;
+    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d?.chart?.result?.[0]?.meta;
+        if (meta?.regularMarketPrice) {
+          map[code.toUpperCase()] = { name: meta.longName || meta.shortName || code, price: meta.regularMarketPrice };
+          break;
+        }
+      } catch(e) {}
+    }
+  }
+  return map;
 }
 
 // Yahoo Finance v8 chart の配当イベント（events=div）から配当情報を取得
