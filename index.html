@@ -1258,8 +1258,81 @@ async function fetchJQIntraday(code) {
   return null;
 }
 
-function drawStockChart(canvas, pts, isIntraday) {
-  if (!canvas || !pts || !pts.length) return;
+// ── 投資信託: 投信総合検索ライブラリー（投資信託協会の公開データ） ──
+const FUND_ISIN_KEY = 'pt_fund_isin_v1';
+const TOUSHIN_BASE  = 'https://toushin-lib.fwg.ne.jp/FdsWeb';
+
+// 協会コード(8桁) → ISINコードを fundDataSearch API で検索（結果はlocalStorageに永続キャッシュ）
+async function fetchFundIsin(code) {
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem(FUND_ISIN_KEY) || '{}'); } catch(e) {}
+  if (cache[code]) return cache[code];
+  const bodies = [
+    `t_keyword=${encodeURIComponent(code)}&t_kensakuKbn=1&t_fundCategory=&startNo=0&draw=1&searchBtnClickFlg=true`,
+    `s_keyword=${encodeURIComponent(code)}&s_kensakuKbn=1&startNo=0&draw=1&searchBtnClickFlg=true`,
+  ];
+  for (const body of bodies) {
+    try {
+      const r = await fetch(JQ_PROXY + encodeURIComponent(TOUSHIN_BASE + '/FDST999900/fundDataSearch'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+      const arr = d?.resultInfoArray || [];
+      const hit = arr.find(x => (x.associFundCd || '').toUpperCase() === code.toUpperCase())
+               || (arr.length === 1 ? arr[0] : null);
+      if (hit?.isinCd) {
+        cache[code] = hit.isinCd;
+        localStorage.setItem(FUND_ISIN_KEY, JSON.stringify(cache));
+        return hit.isinCd;
+      }
+    } catch(e) {}
+  }
+  return '';
+}
+
+// 基準価額の全履歴CSV（Shift_JIS）を取得してパース。セッション中はメモリにキャッシュ
+const fundChartCache = {};
+async function fetchFundChart(code, daysFrom) {
+  let all = fundChartCache[code];
+  if (!all) {
+    const isin = await fetchFundIsin(code);
+    const urls = [];
+    if (isin) urls.push(`${TOUSHIN_BASE}/FDST030000/csv-file-download?isinCd=${encodeURIComponent(isin)}&associFundCd=${encodeURIComponent(code)}`);
+    urls.push(`${TOUSHIN_BASE}/FDST030000/csv-file-download?isinCd=&associFundCd=${encodeURIComponent(code)}`);
+    for (const u of urls) {
+      try {
+        const r = await fetch(JQ_PROXY + encodeURIComponent(u));
+        if (!r.ok) continue;
+        const buf = await r.arrayBuffer();
+        let text;
+        try { text = new TextDecoder('shift_jis').decode(buf); }
+        catch(e) { text = new TextDecoder().decode(buf); }
+        const pts = [];
+        for (const line of text.split(/\r?\n/)) {
+          const cols = line.split(',');
+          if (cols.length < 2) continue;
+          const m = cols[0].match(/(\d{4})[年/\-](\d{1,2})[月/\-](\d{1,2})/);
+          if (!m) continue;
+          const price = parseFloat(cols[1].replace(/[^0-9.]/g, ''));
+          if (!price) continue;
+          const date = `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+          pts.push({ date, c: price, o: price, h: price, l: price });
+        }
+        if (pts.length) { pts.sort((a,b)=>a.date.localeCompare(b.date)); all = pts; fundChartCache[code] = pts; break; }
+      } catch(e) {}
+    }
+  }
+  if (!all || !all.length) return null;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - daysFrom);
+  const cs = cutoff.toISOString().slice(0, 10);
+  const filtered = all.filter(p => p.date >= cs);
+  return filtered.length ? filtered : all.slice(-Math.max(daysFrom, 2));
+}
+
+function drawStockChart(canvas, pts, isIntraday) {  if (!canvas || !pts || !pts.length) return;
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.parentElement.clientWidth || 320, H = 180;
   canvas.width = W*dpr; canvas.height = H*dpr;
@@ -1368,8 +1441,9 @@ async function loadDetailChart() {
   const hint   = document.getElementById('detailChartHint');
   const canvas = document.getElementById('detailChart');
 
+  const isFund = isFundCode(s.code);
   const apiKeyForChart = (localStorage.getItem(JQ_MODE)||'refresh') === 'apikey' ? localStorage.getItem(JQK) : null;
-  if (!apiKeyForChart) {
+  if (!isFund && !apiKeyForChart) {
     hint.textContent = 'チャートにはJ-Quants APIキーが必要です（設定から登録）';
     hint.classList.add('on');
     return;
@@ -1378,10 +1452,13 @@ async function loadDetailChart() {
   hint.textContent = '取得中…'; hint.classList.add('on');
   canvas.style.opacity = '.25';
 
-  const isIntraday = detailPeriod === '1d';
-  const pts = isIntraday
-    ? await fetchJQIntraday(s.code)
-    : await fetchJQChart(s.code, CHART_PERIODS[detailPeriod]);
+  // 投資信託は日次データのみ（1日選択時は1週間分を表示）
+  const isIntraday = !isFund && detailPeriod === '1d';
+  const pts = isFund
+    ? await fetchFundChart(s.code, CHART_PERIODS[detailPeriod] || 10)
+    : isIntraday
+      ? await fetchJQIntraday(s.code)
+      : await fetchJQChart(s.code, CHART_PERIODS[detailPeriod]);
   hint.classList.remove('on');
   canvas.style.opacity = '1';
 
@@ -1442,11 +1519,12 @@ function drawTileFake(canvasId, seed, isPos) {
 }
 
 async function fetchAndDrawTile(s) {
-  if (isFundCode(s.code)) return;
   const periods = { '1w': 10, '1m': 33, '3m': 95, '1y': 370 };
   const daysFrom = periods[tilePeriod] || 33;
   const cacheKey = `${s.code}_${tilePeriod}`;
-  const data = await fetchJQChart(s.code, daysFrom).catch(() => null);
+  const data = isFundCode(s.code)
+    ? await fetchFundChart(s.code, daysFrom).catch(() => null)
+    : await fetchJQChart(s.code, daysFrom).catch(() => null);
   if (!data || !data.length) return;
   tileCache[cacheKey] = data.map(d => d.c);
   drawTileCanvas('tc_' + s.id, tileCache[cacheKey], plRate(s) >= 0);
