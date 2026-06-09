@@ -2142,18 +2142,26 @@ async function fetchJQuants(codes) {
 }
 
 async function fetchQuotes(codes) {
-  const map = await fetchYahoo(codes);
-  const missing = codes.filter(c => !map[c.toUpperCase()]);
-  if (missing.length && localStorage.getItem(JQK)) {
+  const jqKey = localStorage.getItem(JQK);
+
+  // J-Quants configured → try it first (more reliable for JP stocks)
+  if (jqKey) {
     try {
-      const jqMap = await fetchJQuants(missing);
-      Object.assign(map, jqMap);
+      const jqMap = await fetchJQuants(codes);
+      const missing = codes.filter(c => !jqMap[c.toUpperCase()]);
+      if (missing.length) {
+        const yahooMap = await fetchYahoo(missing);
+        Object.assign(jqMap, yahooMap);
+      }
+      return jqMap;
     } catch(e) {
       if (e.message === 'jq_expired') document.getElementById('refreshSt').textContent = 'J-Quantsトークン期限切れ — 設定から再設定';
       else if (e.message !== 'jq_not_configured') console.error('JQ:', e);
     }
   }
-  return map;
+
+  // No J-Quants key → Yahoo Finance only
+  return await fetchYahoo(codes);
 }
 
 // ── Toast ──
