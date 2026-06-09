@@ -367,6 +367,12 @@ body::after{z-index:-1;background:
 .d-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-bottom:16px}
 .d-stat-l{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:2px}
 .d-stat-v{font-size:13px;font-weight:700;color:#102039;font-family:'JetBrains Mono',monospace}
+#indexToggleGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 20px 8px}
+.idx-toggle{border:1.5px solid var(--border);border-radius:14px;padding:10px 12px;text-align:left;background:rgba(255,255,255,.7);cursor:pointer;transition:background .15s,border-color .15s;box-shadow:0 2px 8px rgba(74,101,170,.06)}
+.idx-toggle.on{background:rgba(109,115,255,.1);border-color:#6d73ff}
+.idx-t-abbr{font-size:12px;font-weight:800;color:#8a93b0;margin-bottom:2px}
+.idx-toggle.on .idx-t-abbr{color:#6d73ff}
+.idx-t-name{font-size:12px;font-weight:700;color:#17233a;line-height:1.3}
 #toast{position:fixed;bottom:calc(var(--nav-h) + 16px);left:50%;transform:translateX(-50%) translateY(16px);background:#1a2a4a;color:#fff;border-radius:24px;padding:11px 22px;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:9999}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{background:linear-gradient(135deg,#20c883,#17a369)}
@@ -419,6 +425,7 @@ body::after{z-index:-1;background:
 
   <div class="sec-hd">
     <div class="sec-ttl">主要指数</div>
+    <div class="sec-lnk" onclick="openIndexModal()" style="font-size:20px;line-height:1;letter-spacing:0">⚙</div>
   </div>
   <div class="slist" id="indexList"><div class="idx-loading">取得中…</div></div>
 
@@ -672,6 +679,20 @@ body::after{z-index:-1;background:
   </div>
 </div>
 
+<!-- ═══ INDEX SELECT MODAL ═══ -->
+<div class="overlay" id="indexModal">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sheet-hd">
+      <span class="sheet-ttl">表示する指数を選択</span>
+      <button class="sheet-close" onclick="closeModal('indexModal')">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--text2);padding:0 20px 10px;margin:0">タップして表示/非表示を切り替えます</p>
+    <div id="indexToggleGrid"></div>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
 <!-- ═══ JQ MODAL ═══ -->
 <div class="overlay" id="jqModal">
   <div class="sheet">
@@ -804,7 +825,8 @@ body::after{z-index:-1;background:
 <script>
 // ── Keys ──
 const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token', JQ_MODE = 'jq_auth_mode',
-      TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1', ACC_KEY = 'pt_last_acc_v1', SORT_KEY = 'pt_holdings_sort_v1';
+      TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1', ACC_KEY = 'pt_last_acc_v1', SORT_KEY = 'pt_holdings_sort_v1',
+      IDX_KEY = 'pt_idx_sel_v1';
 const COLORS = ['#7B5EA7','#5B8DEF','#22C55E','#F59E0B','#EF4444','#06B6D4','#EC4899','#10B981','#8B5CF6','#F97316','#14B8A6','#6366F1','#84CC16','#E879F9','#FB923C'];
 
 // ── State ──
@@ -818,8 +840,8 @@ let editingId     = null;
 let hideTotals    = false;
 let plMode        = 'today';
 let searchQuery   = '';
-let marketCache   = null;
 let marketCacheAt = 0;
+let marketCacheData = null;
 let selectedDivMonth   = null;
 let holdingsTagFilter  = null;
 const _sortCfg      = loadJSON(SORT_KEY, { key: 'default', asc: false });
@@ -951,16 +973,26 @@ function closeDrop() {
 
 // ── Market data ──
 const MARKET_INDICES = [
-  { sym: '^N225',    name: '日経平均',    abbr: '日経', decimals: 0 },
-  { sym: '^TOPX',    name: 'TOPIX',       abbr: 'TOP',  decimals: 2 },
-  { sym: 'USDJPY=X', name: 'USD/JPY',     abbr: '$¥',   decimals: 2 },
-  { sym: '^DJI',     name: 'NYダウ',      abbr: 'DOW',  decimals: 0 },
-  { sym: '^GSPC',    name: 'S&P 500',     abbr: 'S&P',  decimals: 2 },
-  { sym: '^IXIC',    name: 'ナスダック',  abbr: 'NAS',  decimals: 2 },
+  { sym: '^N225',    name: '日経平均',      abbr: '日経',  decimals: 0 },
+  { sym: '^TOPX',    name: 'TOPIX',         abbr: 'TOP',   decimals: 2 },
+  { sym: 'USDJPY=X', name: 'USD/JPY',       abbr: '$¥',    decimals: 2 },
+  { sym: '^DJI',     name: 'NYダウ',        abbr: 'DOW',   decimals: 0 },
+  { sym: '^GSPC',    name: 'S&P 500',       abbr: 'S&P',   decimals: 2 },
+  { sym: '^IXIC',    name: 'ナスダック',    abbr: 'NAS',   decimals: 2 },
+  { sym: 'EURJPY=X', name: 'EUR/JPY',       abbr: '€¥',    decimals: 2 },
+  { sym: 'GC=F',     name: '金（ゴールド）', abbr: 'GOLD',  decimals: 1 },
+  { sym: 'CL=F',     name: '原油（WTI）',   abbr: 'OIL',   decimals: 2 },
+  { sym: 'BTC-USD',  name: 'ビットコイン',  abbr: 'BTC',   decimals: 0 },
 ];
+const IDX_DEFAULT = ['^N225', '^TOPX', 'USDJPY=X', '^DJI', '^GSPC', '^IXIC'];
+function getSelectedIdx() {
+  const saved = localStorage.getItem(IDX_KEY);
+  return new Set(saved ? saved.split(',') : IDX_DEFAULT);
+}
 async function fetchMarketData() {
   const syms = MARKET_INDICES.map(x => x.sym);
-  const encoded = syms.map(encodeURIComponent).join(',');
+  // Try v7 bulk first
+  const encoded = encodeURIComponent(syms.join(','));
   for (const host of ['query1', 'query2']) {
     const apiUrl = `https://${host}.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=${encoded}`;
     for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
@@ -969,26 +1001,45 @@ async function fetchMarketData() {
         if (!r.ok) continue;
         const d = await r.json();
         const list = d?.quoteResponse?.result;
-        if (list && list.length) return list;
+        if (list?.length) return list;
       } catch(e) {}
     }
   }
-  return null;
+  // v8/chart fallback per symbol (no crumb needed)
+  const results = [];
+  for (const idx of MARKET_INDICES) {
+    const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(idx.sym)}?interval=1d&range=5d`;
+    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
+      try {
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const meta = d?.chart?.result?.[0]?.meta;
+        if (meta?.regularMarketPrice) {
+          results.push({ symbol: idx.sym, regularMarketPrice: meta.regularMarketPrice,
+            regularMarketChangePercent: meta.regularMarketChangePercent || 0 });
+          break;
+        }
+      } catch(e) {}
+    }
+  }
+  return results.length ? results : null;
 }
 async function updateMarketIndices() {
   const now = Date.now();
-  if (marketCache && now - marketCacheAt < 5*60*1000) { renderIndexList(marketCache); return; }
+  if (marketCacheData && now - marketCacheAt < 5*60*1000) { renderIndexList(marketCacheData); return; }
   const list = await fetchMarketData();
-  if (list) { marketCache = list; marketCacheAt = now; renderIndexList(list); }
+  if (list) { marketCacheData = list; marketCacheAt = now; renderIndexList(list); }
   else {
     const el = document.getElementById('indexList');
-    if (el && el.querySelector('.idx-loading')) el.innerHTML = '<div class="idx-loading">データを取得できませんでした</div>';
+    if (el) el.innerHTML = '<div class="idx-loading">データを取得できませんでした</div>';
   }
 }
 function renderIndexList(list) {
   const el = document.getElementById('indexList');
   if (!el) return;
-  const rows = MARKET_INDICES.map(idx => {
+  const sel = getSelectedIdx();
+  const rows = MARKET_INDICES.filter(idx => sel.has(idx.sym)).map(idx => {
     const q = list.find(x => x.symbol === idx.sym);
     if (!q || !q.regularMarketPrice) return '';
     const price = q.regularMarketPrice;
@@ -1010,6 +1061,23 @@ function renderIndexList(list) {
     </div>`;
   }).filter(Boolean).join('');
   el.innerHTML = rows || '<div class="idx-loading">データを取得できませんでした</div>';
+}
+function openIndexModal() {
+  const sel = getSelectedIdx();
+  document.getElementById('indexToggleGrid').innerHTML = MARKET_INDICES.map(idx =>
+    `<button class="idx-toggle ${sel.has(idx.sym) ? 'on' : ''}" data-sym="${esc(idx.sym)}" onclick="toggleIdx(this)">
+      <div class="idx-t-abbr">${esc(idx.abbr)}</div>
+      <div class="idx-t-name">${esc(idx.name)}</div>
+    </button>`
+  ).join('');
+  openModal('indexModal');
+}
+function toggleIdx(btn) {
+  btn.classList.toggle('on');
+  const sel = [...document.querySelectorAll('#indexToggleGrid .idx-toggle.on')].map(b => b.dataset.sym);
+  if (!sel.length) { btn.classList.add('on'); return; }
+  localStorage.setItem(IDX_KEY, sel.join(','));
+  if (marketCacheData) renderIndexList(marketCacheData);
 }
 
 // ── Format ──
