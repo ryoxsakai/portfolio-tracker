@@ -367,6 +367,10 @@ body::after{z-index:-1;background:
 .d-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-bottom:16px}
 .d-stat-l{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:2px}
 .d-stat-v{font-size:13px;font-weight:700;color:#102039;font-family:'JetBrains Mono',monospace}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 16px);left:50%;transform:translateX(-50%) translateY(16px);background:#1a2a4a;color:#fff;border-radius:24px;padding:11px 22px;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:9999}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:linear-gradient(135deg,#20c883,#17a369)}
+#toast.ng{background:linear-gradient(135deg,#ff4266,#d9263e)}
 </style>
 </head>
 <body>
@@ -2127,10 +2131,21 @@ async function fetchQuotes(codes) {
   return map;
 }
 
+// ── Toast ──
+let _toastTimer;
+function showToast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  clearTimeout(_toastTimer);
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  _toastTimer = setTimeout(() => { el.className = type; }, 2800);
+}
+
 // ── Refresh all prices ──
 async function refreshAllPrices(btnEl) {
   const withCode = stocks.filter(s=>s.code);
-  if (!withCode.length) { document.getElementById('refreshSt').textContent='銘柄コードが登録されていません'; return; }
+  if (!withCode.length) { showToast('銘柄コードが登録されていません', 'ng'); return; }
   if (btnEl) { btnEl.disabled=true; btnEl.innerHTML='<span class="spinning">↻</span>'; }
   document.getElementById('refreshSt').textContent='更新中…';
   try {
@@ -2141,7 +2156,8 @@ async function refreshAllPrices(btnEl) {
     if (cnt) { saveStocks(); snapshot(); renderTab(currentTab); }
     const t=new Date();
     document.getElementById('refreshSt').textContent=p2(t.getHours())+':'+p2(t.getMinutes())+' 更新（'+cnt+'銘柄）';
-  } catch(e) { document.getElementById('refreshSt').textContent='取得失敗: '+e.message; }
+    showToast(cnt ? cnt+'銘柄を更新しました ✓' : '更新できた銘柄がありません', cnt ? 'ok' : 'ng');
+  } catch(e) { document.getElementById('refreshSt').textContent='取得失敗: '+e.message; showToast('株価の取得に失敗しました', 'ng'); }
   if (btnEl) { btnEl.disabled=false; btnEl.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>'; }
 }
 
@@ -2854,5 +2870,6 @@ document.getElementById('hRefreshBtn').addEventListener('click', function() {
   refreshAllPrices(this);
 });
 </script>
+<div id="toast"></div>
 </body>
 </html>
