@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+JP:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <style>
 :root {
   --accent:      #7B5EA7;
@@ -415,7 +416,7 @@ body::after{z-index:-1;background:
       <button class="bell-btn" id="bellBtn" type="button" aria-label="通知"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="bell-dot" id="bellDot"></span></button>
       <button class="bell-btn" id="settingsBtn" type="button" aria-label="設定"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
-    <div class="total-lbl">総資産評価額 <span class="eye-btn" id="eyeBtn">👁</span></div>
+    <div class="total-lbl">総資産評価額 <span class="eye-btn" id="eyeBtn"><i class="fa-regular fa-eye"></i></span></div>
     <div class="total-val" id="homeTotal">¥0</div>
     <div class="total-change" id="homeChange">—</div>
   </div>
@@ -836,7 +837,7 @@ body::after{z-index:-1;background:
         <div class="ssec-ttl">API 連携</div>
         <div class="scard">
           <div class="srow" id="jqRow">
-            <div class="sico2" style="background:rgba(91,141,239,.12)">📈</div>
+            <div class="sico2" style="background:rgba(91,141,239,.12)"><i class="fa-solid fa-chart-line" style="color:#5B8DEF"></i></div>
             <div class="srow-c"><div class="srow-t">J-Quants API</div><div class="srow-d" id="jqRowDesc">未設定</div></div>
             <div class="srow-arr">›</div>
           </div>
@@ -846,12 +847,12 @@ body::after{z-index:-1;background:
         <div class="ssec-ttl">アラート設定</div>
         <div class="scard">
           <div class="srow" id="aProfitRow">
-            <div class="sico2" style="background:rgba(22,163,74,.12)">📈</div>
+            <div class="sico2" style="background:rgba(22,163,74,.12)"><i class="fa-solid fa-arrow-trend-up" style="color:var(--pos)"></i></div>
             <div class="srow-c"><div class="srow-t">利確ライン</div><div class="srow-d" id="aProfitDesc">+20%</div></div>
             <div class="srow-arr">›</div>
           </div>
           <div class="srow" id="aLossRow">
-            <div class="sico2" style="background:rgba(220,38,38,.10)">📉</div>
+            <div class="sico2" style="background:rgba(220,38,38,.10)"><i class="fa-solid fa-arrow-trend-down" style="color:var(--neg)"></i></div>
             <div class="srow-c"><div class="srow-t">損切ライン</div><div class="srow-d" id="aLossDesc">−7%</div></div>
             <div class="srow-arr">›</div>
           </div>
@@ -861,17 +862,17 @@ body::after{z-index:-1;background:
         <div class="ssec-ttl">データ管理</div>
         <div class="scard">
           <div class="srow" id="exportRow">
-            <div class="sico2" style="background:rgba(123,94,167,.12)">📤</div>
+            <div class="sico2" style="background:rgba(123,94,167,.12)"><i class="fa-solid fa-upload" style="color:#7B5EA7"></i></div>
             <div class="srow-c"><div class="srow-t">エクスポート</div><div class="srow-d">JSON形式でバックアップ</div></div>
             <div class="srow-arr">›</div>
           </div>
           <div class="srow" id="importRow">
-            <div class="sico2" style="background:rgba(123,94,167,.12)">📥</div>
+            <div class="sico2" style="background:rgba(123,94,167,.12)"><i class="fa-solid fa-download" style="color:#7B5EA7"></i></div>
             <div class="srow-c"><div class="srow-t">インポート</div><div class="srow-d">JSONファイルから復元</div></div>
             <div class="srow-arr">›</div>
           </div>
           <div class="srow" id="clearRow">
-            <div class="sico2" style="background:rgba(220,38,38,.08)">🗑</div>
+            <div class="sico2" style="background:rgba(220,38,38,.08)"><i class="fa-solid fa-trash" style="color:var(--neg)"></i></div>
             <div class="srow-c"><div class="srow-t" style="color:var(--neg)">全データを削除</div><div class="srow-d">この操作は元に戻せません</div></div>
             <div class="srow-arr">›</div>
           </div>
@@ -1067,16 +1068,16 @@ function openNotifications() {
   const thisMonth = new Date().getMonth() + 1;
   const body = document.getElementById('notifBody');
   if (!alerts.length) {
-    body.innerHTML = '<div class="empty"><div class="empty-ico">🔔</div><div class="empty-t">お知らせはありません</div><div class="empty-s">利確・損切ラインや配当月を設定してください</div></div>';
+    body.innerHTML = '<div class="empty"><div class="empty-ico"><i class="fa-regular fa-bell"></i></div><div class="empty-t">お知らせはありません</div><div class="empty-s">利確・損切ラインや配当月を設定してください</div></div>';
   } else {
     body.innerHTML = alerts.map(a => {
       const s = a.stock;
       const w = a.watch;
-      if (a.type === 'profit') return `<div class="notif-item"><div class="notif-ico" style="background:var(--pos-bg)">📈</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 利確ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 上昇（ライン: +${cfg.profitLine}%）</div></div></div>`;
-      if (a.type === 'loss')   return `<div class="notif-item"><div class="notif-ico" style="background:var(--neg-bg)">📉</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 損切ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 下落（ライン: ${cfg.lossLine}%）</div></div></div>`;
-      if (a.type === 'dividend') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(91,141,239,.12)">💰</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 今月配当</div><div class="notif-sub">${thisMonth}月は配当月です（予想: ${fmtY(stockDiv(s))}）</div></div></div>`;
-      if (a.type === 'watchAbove') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(32,200,131,.12)">🔔</div><div class="notif-body"><div class="notif-ttl">${esc(w.name||w.code)} — 上昇アラート</div><div class="notif-sub">現在値 ${fmtPrice(w.currentPrice)} が設定価格 ${fmtPrice(w.alertAbove)} を上回っています</div></div></div>`;
-      if (a.type === 'watchBelow') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(255,63,100,.10)">🔔</div><div class="notif-body"><div class="notif-ttl">${esc(w.name||w.code)} — 下落アラート</div><div class="notif-sub">現在値 ${fmtPrice(w.currentPrice)} が設定価格 ${fmtPrice(w.alertBelow)} を下回っています</div></div></div>`;
+      if (a.type === 'profit') return `<div class="notif-item"><div class="notif-ico" style="background:var(--pos-bg)"><i class="fa-solid fa-arrow-trend-up" style="color:var(--pos)"></i></div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 利確ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 上昇（ライン: +${cfg.profitLine}%）</div></div></div>`;
+      if (a.type === 'loss')   return `<div class="notif-item"><div class="notif-ico" style="background:var(--neg-bg)"><i class="fa-solid fa-arrow-trend-down" style="color:var(--neg)"></i></div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 損切ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 下落（ライン: ${cfg.lossLine}%）</div></div></div>`;
+      if (a.type === 'dividend') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(91,141,239,.12)"><i class="fa-solid fa-coins" style="color:#5B8DEF"></i></div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 今月配当</div><div class="notif-sub">${thisMonth}月は配当月です（予想: ${fmtY(stockDiv(s))}）</div></div></div>`;
+      if (a.type === 'watchAbove') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(32,200,131,.12)"><i class="fa-solid fa-bell" style="color:var(--pos)"></i></div><div class="notif-body"><div class="notif-ttl">${esc(w.name||w.code)} — 上昇アラート</div><div class="notif-sub">現在値 ${fmtPrice(w.currentPrice)} が設定価格 ${fmtPrice(w.alertAbove)} を上回っています</div></div></div>`;
+      if (a.type === 'watchBelow') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(255,63,100,.10)"><i class="fa-solid fa-bell" style="color:var(--neg)"></i></div><div class="notif-body"><div class="notif-ttl">${esc(w.name||w.code)} — 下落アラート</div><div class="notif-sub">現在値 ${fmtPrice(w.currentPrice)} が設定価格 ${fmtPrice(w.alertBelow)} を下回っています</div></div></div>`;
       return '';
     }).join('');
   }
@@ -1285,7 +1286,7 @@ function renderHome() {
 
   const el = document.getElementById('homeList');
   if (!stocks.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">📊</div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-ico"><i class="fa-solid fa-chart-pie"></i></div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
     return;
   }
   const top = [...stocks].sort((a,b) => stockVal(b) - stockVal(a)).slice(0,4);
@@ -1719,7 +1720,7 @@ function renderHoldings() {
 
   if (!stocks.length) {
     el.className = 'hlist';
-    el.innerHTML = '<div class="empty"><div class="empty-ico">📊</div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-ico"><i class="fa-solid fa-chart-pie"></i></div><div class="empty-t">銘柄が登録されていません</div><div class="empty-s">＋ボタンから追加してください</div></div>';
     return;
   }
 
@@ -1727,7 +1728,7 @@ function renderHoldings() {
 
   if (!filtered.length) {
     el.className = 'hlist';
-    el.innerHTML = `<div class="empty"><div class="empty-ico">🏷</div><div class="empty-t">「${esc(holdingsTagFilter)}」の銘柄はありません</div></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-ico"><i class="fa-solid fa-tag"></i></div><div class="empty-t">「${esc(holdingsTagFilter)}」の銘柄はありません</div></div>`;
     return;
   }
 
@@ -2001,7 +2002,7 @@ function renderWatch() {
   const sorted = sortWatchItems(filtered);
 
   if (!watchStocks.length) {
-    document.getElementById('watchList').innerHTML = `<div class="w-empty"><div class="w-empty-ico">👁</div><div class="w-empty-t">ウォッチリストが空です</div><div class="w-empty-s">右上の＋ボタンから銘柄を追加してください</div></div>`;
+    document.getElementById('watchList').innerHTML = `<div class="w-empty"><div class="w-empty-ico"><i class="fa-solid fa-binoculars"></i></div><div class="w-empty-t">ウォッチリストが空です</div><div class="w-empty-s">右上の＋ボタンから銘柄を追加してください</div></div>`;
     return;
   }
 
@@ -2046,7 +2047,7 @@ function renderWatchTileGrid(items) {
   el.innerHTML = items.map((w, i) => {
     const chg = w.prevPrice ? fmtR((w.currentPrice - w.prevPrice) / w.prevPrice * 100) : '—';
     const isPos = isWatchPos(w);
-    const alertMark = (w.alertAbove != null || w.alertBelow != null) ? ' 🔔' : '';
+    const alertMark = (w.alertAbove != null || w.alertBelow != null) ? ' <i class="fa-solid fa-bell" style="font-size:9px;color:#6d73ff;vertical-align:middle"></i>' : '';
     return `<div class="tile" style="animation-delay:${i*.03}s" onclick="openWatchEdit('${w.id}')">
       <canvas id="wtc_${w.id}"></canvas>
       <div class="tile-body">
@@ -3323,7 +3324,11 @@ document.getElementById('clearRow').addEventListener('click', () => {
 
 // ── Events: eye button (hide totals) ──
 document.getElementById('eyeBtn').addEventListener('click', () => {
-  hideTotals = !hideTotals; renderHome();
+  hideTotals = !hideTotals;
+  document.getElementById('eyeBtn').innerHTML = hideTotals
+    ? '<i class="fa-regular fa-eye-slash"></i>'
+    : '<i class="fa-regular fa-eye"></i>';
+  renderHome();
 });
 
 // ── Events: P&L mode toggle (tap homeChange to switch today↔cumulative) ──
