@@ -377,6 +377,28 @@ body::after{z-index:-1;background:
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{background:linear-gradient(135deg,#20c883,#17a369)}
 #toast.ng{background:linear-gradient(135deg,#ff4266,#d9263e)}
+
+/* ── Watch tab cards ── */
+.wcard{background:rgba(255,255,255,.83);border-radius:16px;box-shadow:0 10px 24px rgba(74,101,170,.09);padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:.15s;animation:fadeUp .18s ease-out both}
+.wcard:active{transform:scale(.98)}
+.wcard-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wcard-info{flex:1;min-width:0}
+.wcard-name{font-size:14px;font-weight:800;color:#102039;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wcard-code{font-size:11px;color:#8ea0bc;font-weight:600;margin-top:1px}
+.wcard-right{text-align:right;flex-shrink:0}
+.wcard-price{font-size:17px;font-weight:800;color:#102039;letter-spacing:-.02em}
+.wcard-chg{font-size:12px;font-weight:700;margin-top:1px}
+.wcard-chg.pos{color:var(--pos)}.wcard-chg.neg{color:var(--neg)}.wcard-chg.neu{color:var(--text3)}
+.wcard-bottom{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center}
+.walert-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(109,115,255,.10);color:#6d73ff}
+.walert-badge.hi{background:rgba(32,200,131,.12);color:var(--pos)}
+.walert-badge.lo{background:rgba(255,63,100,.10);color:var(--neg)}
+.walert-badge.trig{opacity:.6;animation:pulse .9s infinite alternate}
+@keyframes pulse{to{opacity:1}}
+.w-empty{padding:60px 20px;text-align:center}
+.w-empty-ico{font-size:48px;margin-bottom:12px}
+.w-empty-t{font-size:16px;font-weight:800;color:#102039;margin-bottom:6px}
+.w-empty-s{font-size:13px;color:var(--text3)}
 </style>
 </head>
 <body>
@@ -391,6 +413,7 @@ body::after{z-index:-1;background:
         <div class="search-drop" id="searchDrop"></div>
       </div>
       <button class="bell-btn" id="bellBtn" type="button" aria-label="通知"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="bell-dot" id="bellDot"></span></button>
+      <button class="bell-btn" id="settingsBtn" type="button" aria-label="設定"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
     <div class="total-lbl">総資産評価額 <span class="eye-btn" id="eyeBtn">👁</span></div>
     <div class="total-val" id="homeTotal">¥0</div>
@@ -524,59 +547,41 @@ body::after{z-index:-1;background:
   </div>
 </div>
 
-<!-- ═══ SETTINGS ═══ -->
-<div class="tab" id="tab-settings">
-  <div class="stab-hd"><div class="stab-ttl">設定</div></div>
+<!-- tab-settings stub for backward compat -->
+<div class="tab" id="tab-settings"></div>
 
-  <div class="ssec">
-    <div class="ssec-ttl">API 連携</div>
-    <div class="scard">
-      <div class="srow" id="jqRow">
-        <div class="sico2" style="background:rgba(91,141,239,.12)">📈</div>
-        <div class="srow-c"><div class="srow-t">J-Quants API</div><div class="srow-d" id="jqRowDesc">未設定</div></div>
-        <div class="srow-arr">›</div>
+<!-- ═══ WATCH ═══ -->
+<div class="tab" id="tab-watch">
+  <div class="tab-hd">
+    <div class="tab-ttl">ウォッチリスト</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="view-toggle">
+        <button class="view-btn on" id="wListBtn" title="リスト">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button class="view-btn" id="wTileBtn" title="タイル">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+        </button>
+      </div>
+      <div class="icon-btn" id="wSortBtn" title="並び替え">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7B5EA7" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><polyline points="17 15 20 18 23 15" transform="translate(-2,0)"/><line x1="19" y1="12" x2="19" y2="18" transform="translate(-1,0)"/></svg>
+      </div>
+      <div class="icon-btn" id="wRefreshBtn" title="株価を更新">
+        <svg width="17" height="17" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14.93-4H16v2h6V4h-2v2.54A10 10 0 1 0 22 12h-2a8 8 0 0 1-8 8 8 8 0 0 1-8-8z" fill="#7B5EA7"/></svg>
+      </div>
+      <div class="icon-btn" id="wAddBtn" title="銘柄を追加" style="background:rgba(123,94,167,.13)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7B5EA7" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </div>
     </div>
   </div>
-
-  <div class="ssec">
-    <div class="ssec-ttl">アラート設定</div>
-    <div class="scard">
-      <div class="srow" id="aProfitRow">
-        <div class="sico2" style="background:rgba(22,163,74,.12)">📈</div>
-        <div class="srow-c"><div class="srow-t">利確ライン</div><div class="srow-d" id="aProfitDesc">+20%</div></div>
-        <div class="srow-arr">›</div>
-      </div>
-      <div class="srow" id="aLossRow">
-        <div class="sico2" style="background:rgba(220,38,38,.10)">📉</div>
-        <div class="srow-c"><div class="srow-t">損切ライン</div><div class="srow-d" id="aLossDesc">−7%</div></div>
-        <div class="srow-arr">›</div>
-      </div>
-    </div>
+  <div class="tile-bar" id="wTileBar" style="display:none">
+    <button class="tile-per" data-wtp="1w">1週</button>
+    <button class="tile-per on" data-wtp="1m">1ヶ月</button>
+    <button class="tile-per" data-wtp="3m">3ヶ月</button>
+    <button class="tile-per" data-wtp="1y">1年</button>
   </div>
-
-  <div class="ssec">
-    <div class="ssec-ttl">データ管理</div>
-    <div class="scard">
-      <div class="srow" id="exportRow">
-        <div class="sico2" style="background:rgba(123,94,167,.12)">📤</div>
-        <div class="srow-c"><div class="srow-t">エクスポート</div><div class="srow-d">JSON形式でバックアップ</div></div>
-        <div class="srow-arr">›</div>
-      </div>
-      <div class="srow" id="importRow">
-        <div class="sico2" style="background:rgba(123,94,167,.12)">📥</div>
-        <div class="srow-c"><div class="srow-t">インポート</div><div class="srow-d">JSONファイルから復元</div></div>
-        <div class="srow-arr">›</div>
-      </div>
-      <div class="srow" id="clearRow">
-        <div class="sico2" style="background:rgba(220,38,38,.08)">🗑</div>
-        <div class="srow-c"><div class="srow-t" style="color:var(--neg)">全データを削除</div><div class="srow-d">この操作は元に戻せません</div></div>
-        <div class="srow-arr">›</div>
-      </div>
-    </div>
-  </div>
-
-  <div style="text-align:center;padding:4px 0 8px;color:var(--text3);font-size:11px">Portfolio Tracker v3.0 — ローカル保存</div>
+  <div class="tag-chip-row" id="watchTagRow"></div>
+  <div id="watchList" style="padding:0 18px"></div>
   <div style="height:12px"></div>
 </div>
 
@@ -598,9 +603,9 @@ body::after{z-index:-1;background:
     <svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="#9090aa"/><path d="M14 2.46A10 10 0 0 1 22 10h-8V2.46z" fill="#c0c0d0"/></svg>
     <div class="ni-lbl">ポートフォリオ</div>
   </div>
-  <div class="ni" data-tab="settings">
-    <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="#9090aa"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="#9090aa" stroke-width="0"/></svg>
-    <div class="ni-lbl">メニュー</div>
+  <div class="ni" data-tab="watch">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9090aa" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    <div class="ni-lbl">ウォッチ</div>
   </div>
 </nav>
 
@@ -821,12 +826,133 @@ body::after{z-index:-1;background:
   </div>
 </div>
 
+<!-- ═══ SETTINGS MODAL ═══ -->
+<div class="overlay" id="settingsModal">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="mhd"><div class="mttl">設定</div><button class="mclose" id="settingsClose">✕</button></div>
+    <div class="mbody">
+      <div class="ssec">
+        <div class="ssec-ttl">API 連携</div>
+        <div class="scard">
+          <div class="srow" id="jqRow">
+            <div class="sico2" style="background:rgba(91,141,239,.12)">📈</div>
+            <div class="srow-c"><div class="srow-t">J-Quants API</div><div class="srow-d" id="jqRowDesc">未設定</div></div>
+            <div class="srow-arr">›</div>
+          </div>
+        </div>
+      </div>
+      <div class="ssec">
+        <div class="ssec-ttl">アラート設定</div>
+        <div class="scard">
+          <div class="srow" id="aProfitRow">
+            <div class="sico2" style="background:rgba(22,163,74,.12)">📈</div>
+            <div class="srow-c"><div class="srow-t">利確ライン</div><div class="srow-d" id="aProfitDesc">+20%</div></div>
+            <div class="srow-arr">›</div>
+          </div>
+          <div class="srow" id="aLossRow">
+            <div class="sico2" style="background:rgba(220,38,38,.10)">📉</div>
+            <div class="srow-c"><div class="srow-t">損切ライン</div><div class="srow-d" id="aLossDesc">−7%</div></div>
+            <div class="srow-arr">›</div>
+          </div>
+        </div>
+      </div>
+      <div class="ssec">
+        <div class="ssec-ttl">データ管理</div>
+        <div class="scard">
+          <div class="srow" id="exportRow">
+            <div class="sico2" style="background:rgba(123,94,167,.12)">📤</div>
+            <div class="srow-c"><div class="srow-t">エクスポート</div><div class="srow-d">JSON形式でバックアップ</div></div>
+            <div class="srow-arr">›</div>
+          </div>
+          <div class="srow" id="importRow">
+            <div class="sico2" style="background:rgba(123,94,167,.12)">📥</div>
+            <div class="srow-c"><div class="srow-t">インポート</div><div class="srow-d">JSONファイルから復元</div></div>
+            <div class="srow-arr">›</div>
+          </div>
+          <div class="srow" id="clearRow">
+            <div class="sico2" style="background:rgba(220,38,38,.08)">🗑</div>
+            <div class="srow-c"><div class="srow-t" style="color:var(--neg)">全データを削除</div><div class="srow-d">この操作は元に戻せません</div></div>
+            <div class="srow-arr">›</div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:4px 0 8px;color:var(--text3);font-size:11px">Portfolio Tracker v3.0 — ローカル保存</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ WATCH ADD MODAL ═══ -->
+<div class="overlay" id="watchAddModal">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="mhd"><div class="mttl">ウォッチに追加</div><button class="mclose" id="watchAddClose">✕</button></div>
+    <div class="mbody">
+      <div class="frow">
+        <div class="ff"><label class="fl">銘柄コード</label><input class="fi" type="text" id="wCode" placeholder="7203 / 0131103A" maxlength="12" autocomplete="off"><div class="hint" id="wFetchHint"></div></div>
+        <div class="ff"><label class="fl">銘柄名</label><input class="fi" type="text" id="wName" placeholder="自動取得"></div>
+      </div>
+      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="wTags" placeholder="成長株 注目銘柄 …" autocomplete="off"></div>
+      <div class="frow">
+        <div class="ff"><label class="fl">上昇アラート (円)</label><input class="fi" type="number" id="wAlertAbove" inputmode="decimal" placeholder="なし"></div>
+        <div class="ff"><label class="fl">下落アラート (円)</label><input class="fi" type="number" id="wAlertBelow" inputmode="decimal" placeholder="なし"></div>
+      </div>
+      <button class="btn-p" id="watchAddConfirm">追加する</button>
+      <button class="btn-s" id="watchAddCancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ WATCH EDIT MODAL ═══ -->
+<div class="overlay" id="watchEditModal">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="mhd"><div class="mttl" id="watchEditTitle">ウォッチ編集</div><button class="mclose" id="watchEditClose">✕</button></div>
+    <div class="mbody">
+      <div class="ff"><label class="fl">銘柄名</label><input class="fi" type="text" id="wEditName"></div>
+      <div class="ff"><label class="fl">タグ (スペース区切り)</label><input class="fi" type="text" id="wEditTags" autocomplete="off"></div>
+      <div class="frow">
+        <div class="ff"><label class="fl">上昇アラート (円)</label><input class="fi" type="number" id="wEditAbove" inputmode="decimal" placeholder="なし"></div>
+        <div class="ff"><label class="fl">下落アラート (円)</label><input class="fi" type="number" id="wEditBelow" inputmode="decimal" placeholder="なし"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);padding:0 0 12px">現在値: <span id="wEditCurPrice" style="font-weight:700;color:#102039"></span></div>
+      <button class="btn-p" id="watchEditSave">保存する</button>
+      <button class="btn-s" id="watchEditDelete" style="color:var(--neg)">ウォッチリストから削除</button>
+      <button class="btn-s" id="watchEditCancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ WATCH SORT MODAL ═══ -->
+<div class="overlay" id="watchSortModal">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="mhd"><div class="mttl">並び替え</div></div>
+    <div class="sort-dir-row">
+      <button class="sort-dir-btn" id="wSortAscBtn">昇順</button>
+      <button class="sort-dir-btn on" id="wSortDescBtn">降順</button>
+    </div>
+    <div class="sort-sheet-items">
+      <button class="sort-sheet-btn" data-wsort="default">編集順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-wsort="code">企業コード順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-wsort="price">価格順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn" data-wsort="change">変化率順</button>
+      <div class="sort-sheet-sep"></div>
+      <button class="sort-sheet-btn cancel" id="wSortCancelBtn">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- #app -->
 <script>
 // ── Keys ──
 const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_refresh_token', JQ_MODE = 'jq_auth_mode',
       TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1', ACC_KEY = 'pt_last_acc_v1', SORT_KEY = 'pt_holdings_sort_v1',
       IDX_KEY = 'pt_idx_sel_v1';
+const WK = 'pt_watch_v1';
 const COLORS = ['#7B5EA7','#5B8DEF','#22C55E','#F59E0B','#EF4444','#06B6D4','#EC4899','#10B981','#8B5CF6','#F97316','#14B8A6','#6366F1','#84CC16','#E879F9','#FB923C'];
 
 // ── State ──
@@ -853,6 +979,15 @@ let detailPeriod       = '1m';
 let holdingsView = localStorage.getItem('pt_hview_v1') || 'list';
 let tilePeriod   = localStorage.getItem('pt_tper_v1')  || '1m';
 const tileCache  = {};
+
+let watchStocks    = loadJSON(WK, []);
+let watchTagFilter = null;
+let watchSortKey   = 'default';
+let watchSortAsc   = false;
+let watchView      = 'list';
+let watchTilePeriod = '1m';
+let editingWatchId = null;
+const watchTileCache = {};
 
 const CHART_PERIODS = { '1w': 10, '1m': 33, '3m': 95, '1y': 370 };
 
@@ -915,6 +1050,12 @@ function calcNotifications() {
     if (s.dividendMonths && s.dividendMonths.includes(thisMonth) && s.annualDividend > 0)
       alerts.push({ type: 'dividend', stock: s });
   });
+  watchStocks.forEach(w => {
+    if (w.alertAbove != null && w.currentPrice >= w.alertAbove)
+      alerts.push({ type: 'watchAbove', watch: w });
+    if (w.alertBelow != null && w.currentPrice <= w.alertBelow)
+      alerts.push({ type: 'watchBelow', watch: w });
+  });
   return alerts;
 }
 function updateBellBadge() {
@@ -930,9 +1071,13 @@ function openNotifications() {
   } else {
     body.innerHTML = alerts.map(a => {
       const s = a.stock;
+      const w = a.watch;
       if (a.type === 'profit') return `<div class="notif-item"><div class="notif-ico" style="background:var(--pos-bg)">📈</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 利確ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 上昇（ライン: +${cfg.profitLine}%）</div></div></div>`;
       if (a.type === 'loss')   return `<div class="notif-item"><div class="notif-ico" style="background:var(--neg-bg)">📉</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 損切ライン到達</div><div class="notif-sub">${fmtR(a.rate)} 下落（ライン: ${cfg.lossLine}%）</div></div></div>`;
-      return `<div class="notif-item"><div class="notif-ico" style="background:rgba(91,141,239,.12)">💰</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 今月配当</div><div class="notif-sub">${thisMonth}月は配当月です（予想: ${fmtY(stockDiv(s))}）</div></div></div>`;
+      if (a.type === 'dividend') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(91,141,239,.12)">💰</div><div class="notif-body"><div class="notif-ttl">${esc(s.name||s.code)} — 今月配当</div><div class="notif-sub">${thisMonth}月は配当月です（予想: ${fmtY(stockDiv(s))}）</div></div></div>`;
+      if (a.type === 'watchAbove') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(32,200,131,.12)">🔔</div><div class="notif-body"><div class="notif-ttl">${esc(w.name||w.code)} — 上昇アラート</div><div class="notif-sub">現在値 ${fmtPrice(w.currentPrice)} が設定価格 ${fmtPrice(w.alertAbove)} を上回っています</div></div></div>`;
+      if (a.type === 'watchBelow') return `<div class="notif-item"><div class="notif-ico" style="background:rgba(255,63,100,.10)">🔔</div><div class="notif-body"><div class="notif-ttl">${esc(w.name||w.code)} — 下落アラート</div><div class="notif-sub">現在値 ${fmtPrice(w.currentPrice)} が設定価格 ${fmtPrice(w.alertBelow)} を下回っています</div></div></div>`;
+      return '';
     }).join('');
   }
   openModal('notifModal');
@@ -991,39 +1136,30 @@ function getSelectedIdx() {
 }
 async function fetchMarketData() {
   const syms = MARKET_INDICES.map(x => x.sym);
-  // Try v7 bulk first
   const encoded = encodeURIComponent(syms.join(','));
   for (const host of ['query1', 'query2']) {
     const apiUrl = `https://${host}.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=${encoded}`;
-    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
-      try {
-        const r = await fetch(url);
-        if (!r.ok) continue;
-        const d = await r.json();
-        const list = d?.quoteResponse?.result;
-        if (list?.length) return list;
-      } catch(e) {}
-    }
+    try {
+      const r = await proxyGet(apiUrl);
+      if (!r.ok) continue;
+      const d = await r.json();
+      const list = d?.quoteResponse?.result;
+      if (list?.length) return list;
+    } catch(e) {}
   }
-  // v8/chart fallback per symbol (no crumb needed)
-  const results = [];
-  for (const idx of MARKET_INDICES) {
+  // v8/chart fallback: fetch all symbols in parallel
+  const settled = await Promise.allSettled(MARKET_INDICES.map(async idx => {
     const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(idx.sym)}?interval=1d&range=5d`;
-    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
-      try {
-        const r = await fetch(url);
-        if (!r.ok) continue;
-        const d = await r.json();
-        const meta = d?.chart?.result?.[0]?.meta;
-        if (meta?.regularMarketPrice) {
-          results.push({ symbol: idx.sym, regularMarketPrice: meta.regularMarketPrice,
-            regularMarketChangePercent: meta.regularMarketChangePercent || 0 });
-          break;
-        }
-      } catch(e) {}
-    }
-  }
-  return results.length ? results : null;
+    const r = await proxyGet(apiUrl);
+    if (!r.ok) throw new Error('not ok');
+    const d = await r.json();
+    const meta = d?.chart?.result?.[0]?.meta;
+    if (!meta?.regularMarketPrice) throw new Error('no price');
+    return { symbol: idx.sym, regularMarketPrice: meta.regularMarketPrice,
+      regularMarketChangePercent: meta.regularMarketChangePercent || 0 };
+  }));
+  const list = settled.filter(r => r.status === 'fulfilled').map(r => r.value);
+  return list.length ? list : null;
 }
 async function updateMarketIndices() {
   const now = Date.now();
@@ -1103,7 +1239,7 @@ function renderTab(tab) {
   if (tab === 'home')      renderHome();
   if (tab === 'holdings')  renderHoldings();
   if (tab === 'portfolio') renderPortfolio();
-  if (tab === 'settings')  renderSettings();
+  if (tab === 'watch')     renderWatch();
 }
 
 // ── Modal helpers ──
@@ -1273,7 +1409,7 @@ async function fetchFundIsin(code) {
   ];
   for (const body of bodies) {
     try {
-      const r = await fetch(JQ_PROXY + encodeURIComponent(TOUSHIN_BASE + '/FDST999900/fundDataSearch'), {
+      const r = await makeFetch(JQ_PROXY + encodeURIComponent(TOUSHIN_BASE + '/FDST999900/fundDataSearch'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body
@@ -1304,7 +1440,7 @@ async function fetchFundChart(code, daysFrom) {
     urls.push(`${TOUSHIN_BASE}/FDST030000/csv-file-download?isinCd=&associFundCd=${encodeURIComponent(code)}`);
     for (const u of urls) {
       try {
-        const r = await fetch(JQ_PROXY + encodeURIComponent(u));
+        const r = await proxyGet(u);
         if (!r.ok) continue;
         const buf = await r.arrayBuffer();
         let text;
@@ -1829,6 +1965,200 @@ function renderSettings() {
   document.getElementById('aLossDesc').textContent   = cfg.lossLine + '%';
 }
 
+// ── Watch helpers ──
+function saveWatch() { localStorage.setItem(WK, JSON.stringify(watchStocks)); }
+function mkWatch(code, name, currentPrice, extra) {
+  return Object.assign({ id: uid(), code, name, currentPrice: currentPrice || 0, prevPrice: null, tags: [], alertAbove: null, alertBelow: null }, extra || {});
+}
+function isWatchPos(w) { return !w.prevPrice || w.currentPrice >= w.prevPrice; }
+
+function sortWatchItems(items) {
+  if (watchSortKey === 'default') return watchSortAsc ? items.slice() : items.slice().reverse();
+  const cmps = {
+    code:   (a, b) => a.code.localeCompare(b.code),
+    price:  (a, b) => a.currentPrice - b.currentPrice,
+    change: (a, b) => {
+      const ra = a.prevPrice ? (a.currentPrice - a.prevPrice) / a.prevPrice : 0;
+      const rb = b.prevPrice ? (b.currentPrice - b.prevPrice) / b.prevPrice : 0;
+      return ra - rb;
+    },
+  };
+  const cmp = cmps[watchSortKey]; if (!cmp) return items.slice();
+  return items.slice().sort((a, b) => watchSortAsc ? cmp(a, b) : cmp(b, a));
+}
+
+// ── Render Watch ──
+function renderWatch() {
+  document.getElementById('wListBtn').classList.toggle('on', watchView === 'list');
+  document.getElementById('wTileBtn').classList.toggle('on', watchView === 'tile');
+  document.getElementById('wTileBar').style.display = watchView === 'tile' ? 'flex' : 'none';
+  document.querySelectorAll('.tile-per[data-wtp]').forEach(b => b.classList.toggle('on', b.dataset.wtp === watchTilePeriod));
+
+  const allTags = [...new Set(watchStocks.flatMap(w => w.tags || []))].sort();
+  buildTagChips('watchTagRow', allTags, watchTagFilter, tag => { watchTagFilter = tag; renderWatch(); });
+
+  const filtered = watchTagFilter ? watchStocks.filter(w => (w.tags || []).includes(watchTagFilter)) : watchStocks;
+  const sorted = sortWatchItems(filtered);
+
+  if (!watchStocks.length) {
+    document.getElementById('watchList').innerHTML = `<div class="w-empty"><div class="w-empty-ico">👁</div><div class="w-empty-t">ウォッチリストが空です</div><div class="w-empty-s">右上の＋ボタンから銘柄を追加してください</div></div>`;
+    return;
+  }
+
+  if (watchView === 'tile') { renderWatchTileGrid(sorted); return; }
+
+  const el = document.getElementById('watchList');
+  el.className = '';
+  el.style.padding = '0 18px';
+  el.innerHTML = sorted.map((w, i) => {
+    const chg = w.prevPrice ? (w.currentPrice - w.prevPrice) / w.prevPrice * 100 : null;
+    const chgHtml = chg != null
+      ? `<div class="wcard-chg ${chg > 0 ? 'pos' : chg < 0 ? 'neg' : 'neu'}">${fmtR(chg)}</div>`
+      : '<div class="wcard-chg neu">—</div>';
+    const tagBadges = (w.tags || []).map(t => `<span class="htag-badge">${esc(t)}</span>`).join('');
+    const aboveTrig = w.alertAbove != null && w.currentPrice >= w.alertAbove;
+    const belowTrig = w.alertBelow != null && w.currentPrice <= w.alertBelow;
+    const alertBadges = [
+      w.alertAbove != null ? `<span class="walert-badge hi${aboveTrig?' trig':''}">↑ ${fmtPrice(w.alertAbove)}</span>` : '',
+      w.alertBelow != null ? `<span class="walert-badge lo${belowTrig?' trig':''}">↓ ${fmtPrice(w.alertBelow)}</span>` : '',
+    ].join('');
+    const bottom = tagBadges || alertBadges ? `<div class="wcard-bottom">${tagBadges}${alertBadges}</div>` : '';
+    return `<div class="wcard" style="animation-delay:${i*.03}s" onclick="openWatchEdit('${w.id}')">
+      <div class="wcard-top">
+        <div class="wcard-info">
+          <div class="wcard-name">${esc(w.name || w.code)}</div>
+          <div class="wcard-code">${esc(w.code)}</div>
+        </div>
+        <div class="wcard-right">
+          <div class="wcard-price">${fmtPrice(w.currentPrice)}</div>
+          ${chgHtml}
+        </div>
+      </div>
+      ${bottom}
+    </div>`;
+  }).join('');
+}
+
+function renderWatchTileGrid(items) {
+  const el = document.getElementById('watchList');
+  el.className = 'tile-grid';
+  el.style.padding = '0 18px';
+  el.innerHTML = items.map((w, i) => {
+    const chg = w.prevPrice ? fmtR((w.currentPrice - w.prevPrice) / w.prevPrice * 100) : '—';
+    const isPos = isWatchPos(w);
+    const alertMark = (w.alertAbove != null || w.alertBelow != null) ? ' 🔔' : '';
+    return `<div class="tile" style="animation-delay:${i*.03}s" onclick="openWatchEdit('${w.id}')">
+      <canvas id="wtc_${w.id}"></canvas>
+      <div class="tile-body">
+        <div>
+          <div class="tile-name">${esc(w.name || w.code)}</div>
+          <div class="tile-code">${esc(w.code)}${alertMark}</div>
+        </div>
+        <div>
+          <div class="tile-price">${fmtPrice(w.currentPrice)}</div>
+          <div class="tile-badge ${isPos ? 'pos' : 'neg'}">${chg}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  requestAnimationFrame(() => {
+    items.forEach(w => {
+      const cacheKey = `${w.code}_${watchTilePeriod}`;
+      const isPos = isWatchPos(w);
+      if (watchTileCache[cacheKey]) {
+        drawTileCanvas('wtc_' + w.id, watchTileCache[cacheKey], isPos);
+      } else {
+        drawTileFake('wtc_' + w.id, w.id, isPos);
+        fetchAndDrawWatchTile(w);
+      }
+    });
+  });
+}
+
+async function fetchAndDrawWatchTile(w) {
+  const periods = { '1w': 10, '1m': 33, '3m': 95, '1y': 370 };
+  const daysFrom = periods[watchTilePeriod] || 33;
+  const cacheKey = `${w.code}_${watchTilePeriod}`;
+  const data = isFundCode(w.code)
+    ? await fetchFundChart(w.code, daysFrom).catch(() => null)
+    : await fetchJQChart(w.code, daysFrom).catch(() => null);
+  if (!data || !data.length) return;
+  watchTileCache[cacheKey] = data.map(d => d.c);
+  drawTileCanvas('wtc_' + w.id, watchTileCache[cacheKey], isWatchPos(w));
+}
+
+// ── Watch refresh ──
+async function refreshWatchPrices(btnEl) {
+  const codes = watchStocks.map(w => w.code).filter(Boolean);
+  if (!codes.length) return;
+  if (btnEl) { btnEl.disabled = true; }
+  try {
+    const map = await fetchQuotes(codes);
+    let cnt = 0;
+    watchStocks.forEach(w => {
+      if (!w.code) return;
+      const q = map[w.code.toUpperCase()];
+      if (q?.price) {
+        if (w.currentPrice) w.prevPrice = w.currentPrice;
+        w.currentPrice = q.price;
+        if (q.name && (!w.name || w.name === w.code)) w.name = q.name;
+        cnt++;
+      }
+    });
+    if (cnt) { saveWatch(); if (currentTab === 'watch') renderWatch(); updateBellBadge(); }
+    showToast(cnt ? cnt + '銘柄を更新しました ✓' : '更新できた銘柄がありません', cnt ? 'ok' : 'ng');
+  } catch(e) { showToast('株価の取得に失敗しました', 'ng'); }
+  if (btnEl) { btnEl.disabled = false; }
+}
+
+// ── Watch CRUD ──
+function openWatchAdd() {
+  editingWatchId = null;
+  ['wCode','wName','wTags','wAlertAbove','wAlertBelow'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('wFetchHint').textContent = '';
+  document.getElementById('wFetchHint').className = 'hint';
+  openModal('watchAddModal');
+  setTimeout(() => document.getElementById('wCode').focus(), 300);
+}
+
+async function watchFetchAndFill() {
+  const code = document.getElementById('wCode').value.trim().toUpperCase();
+  if (!code) return;
+  const hint = document.getElementById('wFetchHint');
+  hint.textContent = '取得中…'; hint.className = 'hint';
+  try {
+    const map = await fetchQuotes([code]);
+    const q = map[code];
+    if (q?.price) {
+      if (!document.getElementById('wName').value) document.getElementById('wName').value = q.name || '';
+      hint.textContent = `現在値: ${fmtPrice(q.price)}`; hint.className = 'hint ok';
+      setTimeout(() => { hint.textContent = ''; hint.className = 'hint'; }, 2500);
+    } else {
+      hint.textContent = '価格を取得できませんでした'; hint.className = 'hint err';
+    }
+  } catch(e) { hint.textContent = '取得エラー: ' + e.message; hint.className = 'hint err'; }
+}
+
+function openWatchEdit(id) {
+  const w = watchStocks.find(x => x.id === id); if (!w) return;
+  editingWatchId = id;
+  document.getElementById('watchEditTitle').textContent = w.name || w.code;
+  document.getElementById('wEditName').value  = w.name || '';
+  document.getElementById('wEditTags').value  = (w.tags || []).join(' ');
+  document.getElementById('wEditAbove').value = w.alertAbove != null ? w.alertAbove : '';
+  document.getElementById('wEditBelow').value = w.alertBelow != null ? w.alertBelow : '';
+  document.getElementById('wEditCurPrice').textContent = fmtPrice(w.currentPrice);
+  openModal('watchEditModal');
+}
+
+// ── Watch sort modal ──
+function openWatchSortModal() {
+  document.querySelectorAll('.sort-sheet-btn[data-wsort]').forEach(b => b.classList.toggle('active', b.dataset.wsort === watchSortKey));
+  document.getElementById('wSortAscBtn').classList.toggle('on', watchSortAsc);
+  document.getElementById('wSortDescBtn').classList.toggle('on', !watchSortAsc);
+  openModal('watchSortModal');
+}
+
 // ── Donut chart with leader lines ──
 function drawDonut(svgId, entries) {
   const svg = document.getElementById(svgId);
@@ -2085,25 +2415,23 @@ async function fetchYahoo(codes) {
   const syms = encodeURIComponent(codes.map(c => c + '.T').join(','));
   for (const host of ['query1', 'query2']) {
     const apiUrl = `https://${host}.finance.yahoo.com/v7/finance/quote?lang=ja&region=JP&symbols=${syms}`;
-    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) continue;
-        const data = await res.json();
-        const list = data?.quoteResponse?.result;
-        if (!list?.length) continue;
-        const map = {};
-        list.forEach(q => {
-          if (!q.regularMarketPrice) return;
-          const c = q.symbol.replace(/\.T$/i, '').toUpperCase();
-          map[c] = { name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice,
-            dividendRate: q.dividendRate || q.trailingAnnualDividendRate || 0,
-            dividendYield: q.trailingAnnualDividendYield || q.dividendYield || 0,
-            exDividendDate: q.exDividendDate || 0, payDate: q.payDate || 0 };
-        });
-        if (Object.keys(map).length) return map;
-      } catch(e) {}
-    }
+    try {
+      const res = await proxyGet(apiUrl);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const list = data?.quoteResponse?.result;
+      if (!list?.length) continue;
+      const map = {};
+      list.forEach(q => {
+        if (!q.regularMarketPrice) return;
+        const c = q.symbol.replace(/\.T$/i, '').toUpperCase();
+        map[c] = { name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice,
+          dividendRate: q.dividendRate || q.trailingAnnualDividendRate || 0,
+          dividendYield: q.trailingAnnualDividendYield || q.dividendYield || 0,
+          exDividendDate: q.exDividendDate || 0, payDate: q.payDate || 0 };
+      });
+      if (Object.keys(map).length) return map;
+    } catch(e) {}
   }
   // v8 chart fallback: no crumb needed, same endpoint used for dividends
   return await fetchYahooChart(codes);
@@ -2111,23 +2439,18 @@ async function fetchYahoo(codes) {
 
 // v8/finance/chart per-stock (authentication-free fallback for price fetch)
 async function fetchYahooChart(codes) {
-  const map = {};
-  for (const code of codes) {
+  const settled = await Promise.allSettled(codes.map(async code => {
     const sym = encodeURIComponent(code + '.T');
     const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=5d`;
-    for (const url of [JQ_PROXY + encodeURIComponent(apiUrl), apiUrl]) {
-      try {
-        const r = await fetch(url);
-        if (!r.ok) continue;
-        const d = await r.json();
-        const meta = d?.chart?.result?.[0]?.meta;
-        if (meta?.regularMarketPrice) {
-          map[code.toUpperCase()] = { name: meta.longName || meta.shortName || code, price: meta.regularMarketPrice };
-          break;
-        }
-      } catch(e) {}
-    }
-  }
+    const r = await proxyGet(apiUrl);
+    if (!r.ok) throw new Error('not ok');
+    const d = await r.json();
+    const meta = d?.chart?.result?.[0]?.meta;
+    if (!meta?.regularMarketPrice) throw new Error('no price');
+    return { code: code.toUpperCase(), name: meta.longName || meta.shortName || code, price: meta.regularMarketPrice };
+  }));
+  const map = {};
+  settled.filter(r => r.status === 'fulfilled').forEach(r => { map[r.value.code] = { name: r.value.name, price: r.value.price }; });
   return map;
 }
 
@@ -2137,50 +2460,63 @@ async function fetchYahooChart(codes) {
 async function fetchYahooDividend(code) {
   const sym  = encodeURIComponent(code + '.T');
   const yurl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2y&events=div`;
-  for (const url of [JQ_PROXY + encodeURIComponent(yurl), yurl]) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const d = await r.json();
-      const divs = d?.chart?.result?.[0]?.events?.dividends;
-      if (!divs) continue;
-      // {ts: {amount, date}} → 配列化して日付昇順
-      const list = Object.values(divs)
-        .map(x => ({ amount: Number(x.amount) || 0, ts: Number(x.date) || 0 }))
-        .filter(x => x.amount > 0 && x.ts > 0)
-        .sort((a, b) => a.ts - b.ts);
-      if (!list.length) continue;
+  try {
+    const r = await proxyGet(yurl);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const divs = d?.chart?.result?.[0]?.events?.dividends;
+    if (!divs) return null;
+    // {ts: {amount, date}} → 配列化して日付昇順
+    const list = Object.values(divs)
+      .map(x => ({ amount: Number(x.amount) || 0, ts: Number(x.date) || 0 }))
+      .filter(x => x.amount > 0 && x.ts > 0)
+      .sort((a, b) => a.ts - b.ts);
+    if (!list.length) return null;
 
-      // Yahoo の date は権利落ち日（ex-dividend date）≈ 権利確定月
-      // 日本株の支払いは約3ヶ月後なので +3 してから月一覧を作る
-      const addM = (m, n) => (m - 1 + n) % 12 + 1;
-      const months = [...new Set(list.map(x => addM(new Date(x.ts * 1000).getMonth() + 1, 3)))].sort((a, b) => a - b);
+    // Yahoo の date は権利落ち日（ex-dividend date）≈ 権利確定月
+    // 日本株の支払いは約3ヶ月後なので +3 してから月一覧を作る
+    const addM = (m, n) => (m - 1 + n) % 12 + 1;
+    const months = [...new Set(list.map(x => addM(new Date(x.ts * 1000).getMonth() + 1, 3)))].sort((a, b) => a - b);
 
-      // 年間配当: 直近約13ヶ月分の合計（≒年間支払額）
-      const cutoff = Date.now() / 1000 - 400 * 86400;
-      let annualDiv = list.filter(x => x.ts >= cutoff).reduce((s, x) => s + x.amount, 0);
-      // 直近13ヶ月にデータがなければ、年あたり支払回数 × 直近1回分で概算
-      if (!annualDiv) {
-        const perYear = months.length || 1;
-        annualDiv = list[list.length - 1].amount * perYear;
-      }
-      annualDiv = Math.round(annualDiv * 100) / 100;
-      if (!annualDiv && !months.length) continue;
-      return { annualDiv, months };
-    } catch(e) { console.warn('YahooDividend', e); }
-  }
+    // 年間配当: 直近約13ヶ月分の合計（≒年間支払額）
+    const cutoff = Date.now() / 1000 - 400 * 86400;
+    let annualDiv = list.filter(x => x.ts >= cutoff).reduce((s, x) => s + x.amount, 0);
+    // 直近13ヶ月にデータがなければ、年あたり支払回数 × 直近1回分で概算
+    if (!annualDiv) {
+      const perYear = months.length || 1;
+      annualDiv = list[list.length - 1].amount * perYear;
+    }
+    annualDiv = Math.round(annualDiv * 100) / 100;
+    if (!annualDiv && !months.length) return null;
+    return { annualDiv, months };
+  } catch(e) { console.warn('YahooDividend', e); }
   return null;
 }
 
 // ── J-Quants ──
 const JQ_V1 = 'https://api.jquants.com/v1';
 const JQ_V2 = 'https://api.jquants.com/v2';
-// J-Quants APIはブラウザからの直接アクセスをCORSで制限しているためプロキシ経由でアクセス
-const JQ_PROXY = 'https://corsproxy.io/?url=';
-function jqFetch(path, apiKey) {
-  return fetch(JQ_PROXY + encodeURIComponent(JQ_V2 + path), {
-    headers: { 'x-api-key': apiKey }
-  });
+const JQ_PROXY  = 'https://corsproxy.io/?url=';
+const JQ_PROXY2 = 'https://api.allorigins.win/raw?url=';
+const FETCH_TIMEOUT = 8000;
+function makeFetch(url, opts = {}) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(tid));
+}
+async function proxyGet(url) {
+  try {
+    return await Promise.any([
+      makeFetch(JQ_PROXY  + encodeURIComponent(url)).then(r => { if (!r.ok) throw r.status; return r; }),
+      makeFetch(JQ_PROXY2 + encodeURIComponent(url)).then(r => { if (!r.ok) throw r.status; return r; }),
+    ]);
+  } catch { return { ok: false }; }
+}
+async function jqFetch(path, apiKey) {
+  const url  = JQ_V2 + path;
+  const opts = { headers: { 'x-api-key': apiKey } };
+  try { const r = await makeFetch(url, opts); if (r.ok) return r; } catch(e) {}
+  return makeFetch(JQ_PROXY + encodeURIComponent(url), opts);
 }
 
 function jqDate(daysAgo) {
@@ -2561,7 +2897,7 @@ async function fetchJQBulkDividend(code, apiKey) {
     const fKey  = f.key || f.Key || f.filename || f.name || '';
 
     // Step 2: ファイル本体をダウンロード（gzip）
-    const dlR = await fetch(
+    const dlR = await makeFetch(
       JQ_PROXY + encodeURIComponent(JQ_V2 + '/bulk/file?key=' + encodeURIComponent(fKey)),
       { headers: { 'x-api-key': apiKey } }
     );
@@ -3020,10 +3356,14 @@ document.getElementById('notifClose').addEventListener('click', () => closeModal
 
 // ── init: restore tab & modal ──
 (function restoreState() {
-  const tab = localStorage.getItem(TAB_KEY) || 'home';
-  goTab(tab);
+  const savedTab = localStorage.getItem(TAB_KEY) || 'home';
+  goTab(['home','holdings','portfolio','watch'].includes(savedTab) ? savedTab : 'home');
   if (stocks.some(s => s.code)) refreshAllPrices(null);
-  setInterval(() => { if (stocks.some(s => s.code)) refreshAllPrices(null); }, 5 * 60 * 1000);
+  if (watchStocks.some(w => w.code)) refreshWatchPrices(null);
+  setInterval(() => {
+    if (stocks.some(s => s.code)) refreshAllPrices(null);
+    if (watchStocks.some(w => w.code)) refreshWatchPrices(null);
+  }, 5 * 60 * 1000);
 
   const modal = localStorage.getItem(MODAL_KEY);
   if (!modal) return;
@@ -3048,6 +3388,81 @@ document.getElementById('notifClose').addEventListener('click', () => closeModal
 document.getElementById('hRefreshBtn').addEventListener('click', function() {
   refreshAllPrices(this);
 });
+
+// ── Events: settings modal ──
+document.getElementById('settingsBtn').addEventListener('click', () => { renderSettings(); openModal('settingsModal'); });
+document.getElementById('settingsClose').addEventListener('click', () => closeModal('settingsModal'));
+
+// ── Events: watch tab ──
+document.getElementById('wAddBtn').addEventListener('click', openWatchAdd);
+document.getElementById('wRefreshBtn').addEventListener('click', function() { refreshWatchPrices(this); });
+document.getElementById('wSortBtn').addEventListener('click', openWatchSortModal);
+document.getElementById('wListBtn').addEventListener('click', () => { watchView = 'list'; renderWatch(); });
+document.getElementById('wTileBtn').addEventListener('click', () => { watchView = 'tile'; renderWatch(); });
+document.querySelectorAll('.tile-per[data-wtp]').forEach(b => b.addEventListener('click', () => {
+  watchTilePeriod = b.dataset.wtp; renderWatch();
+}));
+
+// ── Events: watch add modal ──
+document.getElementById('watchAddClose').addEventListener('click', () => closeModal('watchAddModal'));
+document.getElementById('watchAddCancel').addEventListener('click', () => closeModal('watchAddModal'));
+document.getElementById('wCode').addEventListener('blur', watchFetchAndFill);
+document.getElementById('wCode').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); watchFetchAndFill(); } });
+document.getElementById('watchAddConfirm').addEventListener('click', async () => {
+  const code = document.getElementById('wCode').value.trim().toUpperCase();
+  if (!code) { alert('銘柄コードを入力してください'); return; }
+  const name = document.getElementById('wName').value.trim() || code;
+  const tags = document.getElementById('wTags').value.trim().split(/[\s,、　]+/).map(t => t.trim()).filter(Boolean);
+  const above = parseFloat(document.getElementById('wAlertAbove').value);
+  const below = parseFloat(document.getElementById('wAlertBelow').value);
+  const map = await fetchQuotes([code]);
+  const q = map[code];
+  const w = mkWatch(code, q?.name || name, q?.price || 0, {
+    tags,
+    alertAbove: isNaN(above) ? null : above,
+    alertBelow: isNaN(below) ? null : below,
+  });
+  watchStocks.push(w);
+  saveWatch(); closeModal('watchAddModal'); goTab('watch');
+});
+
+// ── Events: watch edit modal ──
+document.getElementById('watchEditClose').addEventListener('click', () => closeModal('watchEditModal'));
+document.getElementById('watchEditCancel').addEventListener('click', () => closeModal('watchEditModal'));
+document.getElementById('watchEditSave').addEventListener('click', () => {
+  const w = watchStocks.find(x => x.id === editingWatchId); if (!w) return;
+  w.name = document.getElementById('wEditName').value.trim() || w.name;
+  w.tags = document.getElementById('wEditTags').value.trim().split(/[\s,、　]+/).map(t => t.trim()).filter(Boolean);
+  const above = parseFloat(document.getElementById('wEditAbove').value);
+  const below = parseFloat(document.getElementById('wEditBelow').value);
+  w.alertAbove = isNaN(above) ? null : above;
+  w.alertBelow = isNaN(below) ? null : below;
+  saveWatch(); closeModal('watchEditModal'); updateBellBadge(); renderWatch();
+});
+document.getElementById('watchEditDelete').addEventListener('click', () => {
+  const w = watchStocks.find(x => x.id === editingWatchId); if (!w) return;
+  if (!confirm('「' + (w.name || w.code) + '」をウォッチリストから削除しますか？')) return;
+  watchStocks = watchStocks.filter(x => x.id !== editingWatchId);
+  saveWatch(); closeModal('watchEditModal'); renderWatch(); updateBellBadge();
+});
+
+// ── Events: watch sort modal ──
+document.getElementById('wSortAscBtn').addEventListener('click', () => {
+  watchSortAsc = true;
+  document.getElementById('wSortAscBtn').classList.add('on');
+  document.getElementById('wSortDescBtn').classList.remove('on');
+});
+document.getElementById('wSortDescBtn').addEventListener('click', () => {
+  watchSortAsc = false;
+  document.getElementById('wSortAscBtn').classList.remove('on');
+  document.getElementById('wSortDescBtn').classList.add('on');
+});
+document.querySelectorAll('.sort-sheet-btn[data-wsort]').forEach(b => b.addEventListener('click', () => {
+  watchSortKey = b.dataset.wsort;
+  closeModal('watchSortModal');
+  renderWatch();
+}));
+document.getElementById('wSortCancelBtn').addEventListener('click', () => closeModal('watchSortModal'));
 </script>
 <div id="toast"></div>
 </body>
