@@ -1400,26 +1400,33 @@ async function fetchJQIntraday(code) {
 // ── 投資信託: 投信総合検索ライブラリー（投資信託協会の公開データ） ──
 const FUND_ISIN_KEY = 'pt_fund_isin_v1';
 const TOUSHIN_BASE  = 'https://toushin-lib.fwg.ne.jp/FdsWeb';
+const WA_FUND_BASE  = 'https://apl.wealthadvisor.jp/webasp/yahoo-fund/fund';
 
 // 協会コード(8桁) → ISINコードを fundDataSearch API で検索（結果はlocalStorageに永続キャッシュ）
 async function fetchFundIsin(code) {
   let cache = {};
   try { cache = JSON.parse(localStorage.getItem(FUND_ISIN_KEY) || '{}'); } catch(e) {}
   if (cache[code]) return cache[code];
-  const bodies = [
-    `t_keyword=${encodeURIComponent(code)}&t_kensakuKbn=1&t_fundCategory=&startNo=0&draw=1&searchBtnClickFlg=true`,
-    `s_keyword=${encodeURIComponent(code)}&s_kensakuKbn=1&startNo=0&draw=1&searchBtnClickFlg=true`,
-  ];
-  for (const body of bodies) {
+  const requestBodies = [
+    { s_keyword: code, s_kensakuKbn: '1' },
+    { s_keyword: code, s_kensakuKbn: '2' },
+    { t_keyword: code, t_kensakuKbn: '1', t_fundCategory: '' },
+  ].map(extra => ({
+    s_investAssetKindCd: [], s_investArea3kindCd: [], s_instCd: [], s_fdsInstCd: [], s_dcFundCD: [],
+    t_investArea10kindCd: [], t_investAssetKindCd: [], t_instCd: [], t_fdsInstCd: [], s_investArea10kindCd: [],
+    s_setlFqcy: [], s_dividend1y: [], s_totalNetAssets: [], s_nowToRedemptionDate: [], s_establishedDateToNow: [],
+    s_isinCd: [], startNo: 0, draw: 1, searchBtnClickFlg: true, ...extra,
+  }));
+  for (const body of requestBodies) {
     try {
       const r = await makeFetch(JQ_PROXY + encodeURIComponent(TOUSHIN_BASE + '/FDST999900/fundDataSearch'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       });
       if (!r.ok) continue;
       const d = await r.json();
-      const arr = d?.resultInfoArray || [];
+      const arr = d?.resultInfoMapList || d?.searchResultInfo?.resultInfoMapList || d?.resultInfoArray || [];
       const hit = arr.find(x => (x.associFundCd || '').toUpperCase() === code.toUpperCase())
                || (arr.length === 1 ? arr[0] : null);
       if (hit?.isinCd) {
@@ -1434,13 +1441,34 @@ async function fetchFundIsin(code) {
 
 // 基準価額の全履歴CSV（Shift_JIS）を取得してパース。セッション中はメモリにキャッシュ
 const fundChartCache = {};
+function parseFundCsv(text) {
+  const pts = [];
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return pts;
+  const header = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+  const dateIdx = header.findIndex(h => /年月日|日付|date/i.test(h));
+  const priceIdx = header.findIndex(h => /基準価額|基準価格|price/i.test(h));
+  for (const line of lines.slice(1)) {
+    const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+    const rawDate = cols[dateIdx >= 0 ? dateIdx : 0] || '';
+    const rawPrice = cols[priceIdx >= 0 ? priceIdx : 1] || '';
+    let m = rawDate.match(/(\d{4})[年/\-](\d{1,2})[月/\-](\d{1,2})/);
+    if (!m) m = rawDate.match(/^(\d{4})(\d{2})(\d{2})$/);
+    if (!m) continue;
+    const price = parseFloat(rawPrice.replace(/[^0-9.]/g, ''));
+    if (!price) continue;
+    const date = `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+    pts.push({ date, c: price, o: price, h: price, l: price });
+  }
+  return pts;
+}
 async function fetchFundChart(code, daysFrom) {
   let all = fundChartCache[code];
   if (!all) {
     const isin = await fetchFundIsin(code);
     const urls = [];
     if (isin) urls.push(`${TOUSHIN_BASE}/FDST030000/csv-file-download?isinCd=${encodeURIComponent(isin)}&associFundCd=${encodeURIComponent(code)}`);
-    urls.push(`${TOUSHIN_BASE}/FDST030000/csv-file-download?isinCd=&associFundCd=${encodeURIComponent(code)}`);
+    urls.push(`${WA_FUND_BASE}/download.aspx?type=1&fnc=${encodeURIComponent(code)}`);
     for (const u of urls) {
       try {
         const r = await proxyGet(u);
@@ -1449,17 +1477,7 @@ async function fetchFundChart(code, daysFrom) {
         let text;
         try { text = new TextDecoder('shift_jis').decode(buf); }
         catch(e) { text = new TextDecoder().decode(buf); }
-        const pts = [];
-        for (const line of text.split(/\r?\n/)) {
-          const cols = line.split(',');
-          if (cols.length < 2) continue;
-          const m = cols[0].match(/(\d{4})[年/\-](\d{1,2})[月/\-](\d{1,2})/);
-          if (!m) continue;
-          const price = parseFloat(cols[1].replace(/[^0-9.]/g, ''));
-          if (!price) continue;
-          const date = `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
-          pts.push({ date, c: price, o: price, h: price, l: price });
-        }
+        const pts = parseFundCsv(text);
         if (pts.length) { pts.sort((a,b)=>a.date.localeCompare(b.date)); all = pts; fundChartCache[code] = pts; break; }
       } catch(e) {}
     }
