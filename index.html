@@ -954,6 +954,7 @@ const SK = 'pt_stocks_v3', HK = 'pt_history_v1', CFG = 'pt_cfg_v1', JQK = 'jq_re
       TAB_KEY = 'pt_tab_v1', MODAL_KEY = 'pt_modal_v1', ACC_KEY = 'pt_last_acc_v1', SORT_KEY = 'pt_holdings_sort_v1',
       IDX_KEY = 'pt_idx_sel_v1';
 const WK = 'pt_watch_v1';
+const HVIEW_KEY = 'pt_hview_v1', TPER_KEY = 'pt_tper_v1';
 const COLORS = ['#7B5EA7','#5B8DEF','#22C55E','#F59E0B','#EF4444','#06B6D4','#EC4899','#10B981','#8B5CF6','#F97316','#14B8A6','#6366F1','#84CC16','#E879F9','#FB923C'];
 
 // ── State ──
@@ -977,8 +978,8 @@ let holdingsSortAsc = !!_sortCfg.asc;
 let portfolioTagFilter = null;
 let detailStockId      = null;
 let detailPeriod       = '1m';
-let holdingsView = localStorage.getItem('pt_hview_v1') || 'list';
-let tilePeriod   = localStorage.getItem('pt_tper_v1')  || '1m';
+let holdingsView = localStorage.getItem(HVIEW_KEY) || 'list';
+let tilePeriod   = localStorage.getItem(TPER_KEY)  || '1m';
 const tileCache  = {};
 
 let watchStocks    = loadJSON(WK, []);
@@ -1101,7 +1102,7 @@ function updateSearchDrop() {
   }
   drop.innerHTML = results.slice(0,6).map(s => {
     const r = plRate(s);
-    return `<div class="si-row" onclick="closeDrop();openEdit('${s.id}')">
+    return `<div class="si-row" onclick="closeDrop();openEdit('${jsq(s.id)}')">
       <div class="si-code">${esc(s.code)}</div>
       <div class="si-name">${esc(s.name||'—')}</div>
       <div class="si-rate ${r>=0?'pos':'neg'}">${fmtR(r)}</div>
@@ -1223,7 +1224,8 @@ function fmtHomeY(n) { return Math.round(n).toLocaleString('ja-JP'); }
 function fmtPrice(n) { return Number(n).toLocaleString('ja-JP', { maximumFractionDigits: n < 1000 ? 1 : 0 }) + '円'; }
 function fmtPL(n) { const s=n>=0?'+':'-'; return s+'¥'+Math.abs(Math.round(n)).toLocaleString('ja-JP'); }
 function fmtR(n)  { return (n>=0?'+':'')+n.toFixed(2)+'%'; }
-function esc(s)   { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s)   { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function jsq(s)   { return esc(String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]/g,' ')); }
 
 // ── Tab switching ──
 function goTab(tab) {
@@ -1293,7 +1295,7 @@ function renderHome() {
   el.innerHTML = top.map(s => {
     const r = plRate(s);
     const diff = s.currentPrice - s.buyPrice;
-    return `<div class="srow" onclick="openStockDetail('${s.id}')">
+    return `<div class="srow" onclick="openStockDetail('${jsq(s.id)}')">
       <div class="sico ${logoClass(s)}">${stockLogo(s)}</div>
       <div class="sinfo">
         <div class="sname">${esc(stockTitle(s))}</div>
@@ -1672,12 +1674,12 @@ function renderTileGrid(sorted) {
   el.className = 'tile-grid';
   el.innerHTML = sorted.map((s, i) => {
     const r = plRate(s);
-    return `<div class="tile" style="animation-delay:${i * .03}s" onclick="openStockDetail('${s.id}')">
+    return `<div class="tile" style="animation-delay:${i * .03}s" onclick="openStockDetail('${jsq(s.id)}')">
       <canvas id="tc_${s.id}"></canvas>
       <div class="tile-body">
         <div>
           <div class="tile-name">${esc(s.name)}</div>
-          <div class="tile-code">${s.code || ''}</div>
+          <div class="tile-code">${esc(s.code || '')}</div>
         </div>
         <div>
           <div class="tile-price">${fmtPrice(s.currentPrice)}</div>
@@ -1709,7 +1711,7 @@ function renderHoldings() {
   document.getElementById('hListBtn').classList.toggle('on', holdingsView === 'list');
   document.getElementById('hTileBtn').classList.toggle('on', holdingsView === 'tile');
   document.getElementById('tileBar').style.display = holdingsView === 'tile' ? 'flex' : 'none';
-  document.querySelectorAll('.tile-per').forEach(b => b.classList.toggle('on', b.dataset.tp === tilePeriod));
+  document.querySelectorAll('.tile-per[data-tp]').forEach(b => b.classList.toggle('on', b.dataset.tp === tilePeriod));
 
   // ── Tag chip row ──
   const allTags = [...new Set(stocks.flatMap(s => s.tags||[]))].sort();
@@ -1763,11 +1765,11 @@ function renderHoldings() {
       <div class="hstat"><div class="hstat-l">年間配当（予想）</div><div class="hstat-v">${fmtY(stockDiv(s))}</div></div>
       <div class="hstat"><div class="hstat-l">配当利回り</div><div class="hstat-v">${(s.annualDividend / s.currentPrice * 100).toFixed(2)}%</div></div>` : '';
     const mChips = s.dividendMonths && s.dividendMonths.length ? `<div class="hstat" style="grid-column:1/-1"><div class="hstat-l">配当支払月</div><div class="mchips">${s.dividendMonths.map(m=>`<span class="mchip">${m}月</span>`).join('')}</div></div>` : '';
-    return `<div class="hcard ${ip?'pc':il?'lc':''}" style="animation-delay:${i*.04}s" onclick="openStockDetail('${s.id}')">
+    return `<div class="hcard ${ip?'pc':il?'lc':''}" style="animation-delay:${i*.04}s" onclick="openStockDetail('${jsq(s.id)}')">
       <div class="htop">
         <div>
           <div class="hname">${esc(s.name)}</div>
-          <div class="hcode">${s.code||'—'}${s.sector?' · '+esc(s.sector):''}${s.cyclicality?' · '+esc(s.cyclicality):''}</div>
+          <div class="hcode">${esc(s.code||'—')}${s.sector?' · '+esc(s.sector):''}${s.cyclicality?' · '+esc(s.cyclicality):''}</div>
           <div class="badges">${badges}</div>
           ${tagBadges ? `<div style="margin-top:4px">${tagBadges}</div>` : ''}
         </div>
@@ -2024,7 +2026,7 @@ function renderWatch() {
       w.alertBelow != null ? `<span class="walert-badge lo${belowTrig?' trig':''}">↓ ${fmtPrice(w.alertBelow)}</span>` : '',
     ].join('');
     const bottom = tagBadges || alertBadges ? `<div class="wcard-bottom">${tagBadges}${alertBadges}</div>` : '';
-    return `<div class="wcard" style="animation-delay:${i*.03}s" onclick="openWatchEdit('${w.id}')">
+    return `<div class="wcard" style="animation-delay:${i*.03}s" onclick="openWatchEdit('${jsq(w.id)}')">
       <div class="wcard-top">
         <div class="wcard-info">
           <div class="wcard-name">${esc(w.name || w.code)}</div>
@@ -2048,7 +2050,7 @@ function renderWatchTileGrid(items) {
     const chg = w.prevPrice ? fmtR((w.currentPrice - w.prevPrice) / w.prevPrice * 100) : '—';
     const isPos = isWatchPos(w);
     const alertMark = (w.alertAbove != null || w.alertBelow != null) ? ' <i class="fa-solid fa-bell" style="font-size:9px;color:#6d73ff;vertical-align:middle"></i>' : '';
-    return `<div class="tile" style="animation-delay:${i*.03}s" onclick="openWatchEdit('${w.id}')">
+    return `<div class="tile" style="animation-delay:${i*.03}s" onclick="openWatchEdit('${jsq(w.id)}')">
       <canvas id="wtc_${w.id}"></canvas>
       <div class="tile-body">
         <div>
@@ -3084,11 +3086,8 @@ document.getElementById('divBarCanvas').addEventListener('click', function(e) {
 });
 
 // ── Events: refresh ──
-document.getElementById('homeRefreshBtn') && document.querySelector('#tab-home .chart-card');
-document.addEventListener('click', e => {
-  if (e.target.closest('#hRefreshBtn') || e.target.closest('#homeRefreshBtn')) {
-    refreshAllPrices(e.target.closest('button') || e.target.closest('.icon-btn'));
-  }
+document.getElementById('hRefreshBtn').addEventListener('click', function() {
+  refreshAllPrices(this);
 });
 
 // ── Events: sort modal ──
@@ -3103,16 +3102,16 @@ function openSortModal() {
 }
 // ── ビュー切り替え ──
 document.getElementById('hListBtn').addEventListener('click', () => {
-  holdingsView = 'list'; localStorage.setItem('pt_hview_v1', 'list'); renderHoldings();
+  holdingsView = 'list'; localStorage.setItem(HVIEW_KEY, 'list'); renderHoldings();
 });
 document.getElementById('hTileBtn').addEventListener('click', () => {
-  holdingsView = 'tile'; localStorage.setItem('pt_hview_v1', 'tile'); renderHoldings();
+  holdingsView = 'tile'; localStorage.setItem(HVIEW_KEY, 'tile'); renderHoldings();
 });
 // タイル期間ボタン
-document.querySelectorAll('.tile-per').forEach(b => {
+document.querySelectorAll('.tile-per[data-tp]').forEach(b => {
   b.addEventListener('click', () => {
     tilePeriod = b.dataset.tp;
-    localStorage.setItem('pt_tper_v1', tilePeriod);
+    localStorage.setItem(TPER_KEY, tilePeriod);
     renderHoldings();
   });
 });
@@ -3292,8 +3291,112 @@ document.getElementById('alertSave').addEventListener('click', () => {
 });
 
 // ── Events: export / import / clear ──
+const BACKUP_VERSION = 2;
+const APP_STORAGE_KEYS = [SK, HK, CFG, WK, TAB_KEY, MODAL_KEY, ACC_KEY, SORT_KEY, IDX_KEY, HVIEW_KEY, TPER_KEY, JQK, JQ_MODE, FUND_ISIN_KEY];
+function cleanText(v) { return v == null ? '' : String(v); }
+function cleanNum(v, def = 0) { const n = Number(v); return Number.isFinite(n) ? n : def; }
+function cleanPositive(v, def) { const n = cleanNum(v, def); return n > 0 ? n : def; }
+function cleanTags(v) { return Array.isArray(v) ? v.map(cleanText).map(t => t.trim()).filter(Boolean) : []; }
+function cleanMonths(v) {
+  return Array.isArray(v) ? [...new Set(v.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 12))].sort((a,b) => a-b) : [];
+}
+function normalizeStock(s) {
+  const buyPrice = cleanPositive(s?.buyPrice, 1);
+  const currentPrice = cleanNum(s?.currentPrice, buyPrice);
+  const shares = Math.max(1, Math.trunc(cleanNum(s?.shares, 1)));
+  return mkStock(cleanText(s?.code).trim().toUpperCase(), cleanText(s?.name).trim(), buyPrice, currentPrice, shares, {
+    id: cleanText(s?.id).trim() || uid(),
+    sector: cleanText(s?.sector).trim(),
+    cyclicality: cleanText(s?.cyclicality).trim(),
+    account: cleanText(s?.account).trim(),
+    annualDividend: Math.max(0, cleanNum(s?.annualDividend, 0)),
+    dividendMonths: cleanMonths(s?.dividendMonths),
+    tags: cleanTags(s?.tags),
+  });
+}
+function normalizeWatch(w) {
+  return mkWatch(cleanText(w?.code).trim().toUpperCase(), cleanText(w?.name).trim(), Math.max(0, cleanNum(w?.currentPrice, 0)), {
+    id: cleanText(w?.id).trim() || uid(),
+    prevPrice: w?.prevPrice == null ? null : Math.max(0, cleanNum(w.prevPrice, 0)),
+    tags: cleanTags(w?.tags),
+    alertAbove: w?.alertAbove == null ? null : cleanNum(w.alertAbove, null),
+    alertBelow: w?.alertBelow == null ? null : cleanNum(w.alertBelow, null),
+  });
+}
+function normalizeHistory(list) {
+  return Array.isArray(list) ? list.map(h => ({ date: cleanText(h?.date), v: cleanNum(h?.v, 0) }))
+    .filter(h => /^\d{4}-\d{2}-\d{2}$/.test(h.date) && h.v > 0) : [];
+}
+function normalizeCfg(input) {
+  return {
+    profitLine: cleanNum(input?.profitLine, 20),
+    lossLine: cleanNum(input?.lossLine, -7),
+  };
+}
+function exportBackup() {
+  return {
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    stocks,
+    history,
+    cfg,
+    watchStocks,
+    preferences: {
+      selectedIndices: [...getSelectedIdx()],
+      holdingsSort: { key: holdingsSortKey, asc: holdingsSortAsc },
+      holdingsView,
+      tilePeriod,
+      watchSort: { key: watchSortKey, asc: watchSortAsc },
+      watchView,
+      watchTilePeriod,
+      lastAccount: localStorage.getItem(ACC_KEY) || '',
+    },
+  };
+}
+function applyBackup(data) {
+  if (!data || typeof data !== 'object') throw new Error('invalid_backup');
+  if (Array.isArray(data.stocks)) stocks = data.stocks.map(normalizeStock);
+  if (Array.isArray(data.history)) history = normalizeHistory(data.history);
+  if (data.cfg && typeof data.cfg === 'object') cfg = normalizeCfg(data.cfg);
+  if (Array.isArray(data.watchStocks)) watchStocks = data.watchStocks.map(normalizeWatch);
+
+  const prefs = data.preferences || {};
+  if (Array.isArray(prefs.selectedIndices)) localStorage.setItem(IDX_KEY, prefs.selectedIndices.map(cleanText).filter(Boolean).join(','));
+  if (prefs.holdingsSort && typeof prefs.holdingsSort === 'object') {
+    holdingsSortKey = cleanText(prefs.holdingsSort.key) || 'default';
+    holdingsSortAsc = !!prefs.holdingsSort.asc;
+    localStorage.setItem(SORT_KEY, JSON.stringify({ key: holdingsSortKey, asc: holdingsSortAsc }));
+  }
+  if (['list','tile'].includes(prefs.holdingsView)) {
+    holdingsView = prefs.holdingsView;
+    localStorage.setItem(HVIEW_KEY, holdingsView);
+  }
+  if (['1w','1m','3m','1y'].includes(prefs.tilePeriod)) {
+    tilePeriod = prefs.tilePeriod;
+    localStorage.setItem(TPER_KEY, tilePeriod);
+  }
+  if (prefs.watchSort && typeof prefs.watchSort === 'object') {
+    watchSortKey = cleanText(prefs.watchSort.key) || 'default';
+    watchSortAsc = !!prefs.watchSort.asc;
+  }
+  if (['list','tile'].includes(prefs.watchView)) watchView = prefs.watchView;
+  if (['1w','1m','3m','1y'].includes(prefs.watchTilePeriod)) watchTilePeriod = prefs.watchTilePeriod;
+  if (prefs.lastAccount) localStorage.setItem(ACC_KEY, cleanText(prefs.lastAccount));
+
+  saveStocks(); saveHistory(); saveCfg(); saveWatch();
+}
+function clearAppData() {
+  APP_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
+  stocks = []; history = []; watchStocks = [];
+  cfg = { profitLine: 20, lossLine: -7 };
+  holdingsSortKey = 'default'; holdingsSortAsc = false; holdingsTagFilter = null; portfolioTagFilter = null;
+  holdingsView = 'list'; tilePeriod = '1m'; watchSortKey = 'default'; watchSortAsc = false; watchTagFilter = null;
+  watchView = 'list'; watchTilePeriod = '1m'; marketCacheAt = 0; marketCacheData = null;
+  Object.keys(tileCache).forEach(k => delete tileCache[k]);
+  Object.keys(watchTileCache).forEach(k => delete watchTileCache[k]);
+}
 document.getElementById('exportRow').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify({stocks,history,cfg},null,2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(exportBackup(),null,2)], {type:'application/json'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='portfolio_backup_'+dateStr(new Date())+'.json'; a.click();
 });
@@ -3304,12 +3407,11 @@ document.getElementById('importFile').addEventListener('change', function() {
   reader.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      if (data.stocks) stocks = data.stocks;
-      if (data.history) history = data.history;
-      if (data.cfg) cfg = Object.assign(cfg, data.cfg);
-      saveStocks(); saveHistory(); saveCfg();
-      alert('インポートが完了しました（'+stocks.length+'銘柄）');
+      applyBackup(data);
+      alert('インポートが完了しました（'+stocks.length+'銘柄 / ウォッチ'+watchStocks.length+'銘柄）');
+      renderSettings();
       renderTab(currentTab);
+      updateBellBadge();
     } catch(err) { alert('ファイルの読み込みに失敗しました'); }
   };
   reader.readAsText(file);
@@ -3317,9 +3419,11 @@ document.getElementById('importFile').addEventListener('change', function() {
 });
 document.getElementById('clearRow').addEventListener('click', () => {
   if (!confirm('すべてのデータを削除しますか？この操作は元に戻せません。')) return;
-  stocks=[]; history=[];
-  saveStocks(); saveHistory();
-  renderTab(currentTab);
+  clearAppData();
+  renderSettings();
+  closeModal('settingsModal');
+  goTab('home');
+  updateBellBadge();
 });
 
 // ── Events: eye button (hide totals) ──
@@ -3388,11 +3492,6 @@ document.getElementById('notifClose').addEventListener('click', () => closeModal
     openModal('alertModal');
   }
 })();
-
-// Handle home refresh button click
-document.getElementById('hRefreshBtn').addEventListener('click', function() {
-  refreshAllPrices(this);
-});
 
 // ── Events: settings modal ──
 document.getElementById('settingsBtn').addEventListener('click', () => { renderSettings(); openModal('settingsModal'); });
